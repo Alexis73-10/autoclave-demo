@@ -1,0 +1,5 @@
+/* Estilos por frente. Cada frente escribe SOLO en su archivo. */
+@import url("frente_ciclo.css");
+@import url("frente_menu.css");
+@import url("frente_opciones.css");
+@import url("frente_sim.css");

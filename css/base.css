@@ -1,0 +1,119 @@
+/* Base: marco con letterbox y lienzo de diseño 1200x1920 (Tema/Escala.qml, vertical).
+   Todas las medidas dentro de #lienzo van en px de DISEÑO; js/core/escala.js aplica
+   transform: scale(factor) para que el lienzo quepa en la pantalla conservando la proporción. */
+
+:root {
+  --ancho-diseno: 1200px;
+  --alto-diseno: 1920px;
+  --familia: "Montserrat", system-ui, sans-serif;
+  /* Tahoma (reloj) y Consolas (mono) son fuentes de Windows: no se redistribuyen.
+     Se piden al sistema y, si no existen (Android, iOS), cae a Montserrat / monospace. */
+  --familia-reloj: Tahoma, "Montserrat", system-ui, sans-serif;
+  --familia-mono: Consolas, "Courier New", ui-monospace, monospace;
+  --dur-rapida: 150ms;
+  --dur-normal: 250ms;
+  --dur-lenta: 400ms;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  overscroll-behavior: none;          /* sin pull-to-refresh */
+  touch-action: none;                 /* sin zoom ni desplazamiento del navegador */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--familia);
+  color: var(--c-texto-primario, #031225);
+  user-select: none;                  /* sin selección de texto */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;        /* sin menú de pulsación larga en iOS */
+}
+
+img, svg { -webkit-user-drag: none; user-select: none; pointer-events: none; }
+
+#marco {
+  position: fixed;
+  inset: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+#lienzo {
+  position: relative;
+  flex: none;
+  width: var(--ancho-diseno);
+  height: var(--alto-diseno);
+  transform-origin: center center;
+  overflow: hidden;
+  background: var(--c-fondo-panel);
+  contain: layout paint;
+}
+
+#pila, #capa-modal, #capa-teclado, #capa-aviso {
+  position: absolute;
+  inset: 0;
+}
+#capa-modal, #capa-teclado, #capa-aviso { pointer-events: none; }
+#capa-modal > *, #capa-teclado > *, #capa-aviso > * { pointer-events: auto; }
+
+.pantalla {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Desplazamiento interno de listas: solo dentro del lienzo, con el dedo */
+.desplazable {
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.desplazable::-webkit-scrollbar { display: none; }
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.oculto { display: none !important; }
+
+/* Marca discreta DEMO (barra inferior) */
+.marca-demo {
+  position: absolute;
+  font: 600 18px/1 var(--familia);
+  letter-spacing: 3px;
+  color: var(--c-texto-secundario, #6B7A90);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Aviso de actualización disponible del service worker */
+.aviso-actualizacion {
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  transform: translateX(-50%);
+  padding: 24px 40px;
+  border-radius: 20px;
+  background: var(--c-accion-primario, #1168F6);
+  color: #fff;
+  font: 600 28px/1.2 var(--familia);
+  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  z-index: 10;
+}

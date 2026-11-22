@@ -1,0 +1,8 @@
+# Solo se publica la demo. Las herramientas de desarrollo (generadores, servidor local,
+# pruebas Playwright y capturas) y el contrato interno quedan fuera del repositorio público:
+# traen rutas locales del equipo de desarrollo.
+herramientas/
+DESARROLLO.md
+__pycache__/
+*.pyc
+INFORME_DEMO.md

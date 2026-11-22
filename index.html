@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Especifika Autoclave Demo</title>
+  <meta name="description" content="Demostración simulada del Software de Autoclave de Especifika. Sin hardware: todos los valores los genera un simulador.">
+  <meta name="theme-color" content="#2C4B70">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/pwa/icono-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/pwa/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Autoclave Demo">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="stylesheet" href="css/fuentes.css">
+  <link rel="stylesheet" href="css/tema.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/componentes.css">
+  <link rel="stylesheet" href="css/pantallas.css">
+</head>
+<body>
+  <div id="marco">
+    <div id="lienzo" aria-live="polite">
+      <div id="pila"></div>
+      <div id="capa-modal"></div>
+      <div id="capa-teclado"></div>
+      <div id="capa-aviso"></div>
+    </div>
+  </div>
+  <noscript>Esta demostración necesita JavaScript.</noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

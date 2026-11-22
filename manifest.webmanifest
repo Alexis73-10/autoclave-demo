@@ -1,0 +1,20 @@
+{
+  "name": "Especifika Autoclave Demo",
+  "short_name": "Autoclave Demo",
+  "description": "Demostración simulada del Software de Autoclave de Especifika. Funciona sin internet.",
+  "lang": "es",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2C4B70",
+  "background_color": "#1B222A",
+  "categories": ["medical", "productivity"],
+  "icons": [
+    { "src": "assets/pwa/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
