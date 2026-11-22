@@ -266,9 +266,19 @@ export function crearGraficaCiclo({ ancho = 1129, alto = 794, pantallaCompleta =
     } else if (ps.length === 1) { gesto = null; if (!dosDedos) moverCursor(ps[0].x); }
     else { gesto = null; dosDedos = false; }
   }
-  toque.addEventListener('pointerdown', (ev) => { toque.setPointerCapture?.(ev.pointerId); punteros.set(ev.pointerId, local(ev)); actualizarGesto(); ev.preventDefault(); });
-  toque.addEventListener('pointermove', (ev) => { if (!punteros.has(ev.pointerId)) return; punteros.set(ev.pointerId, local(ev)); actualizarGesto(); });
-  const fuera = (ev) => { if (!punteros.delete(ev.pointerId)) return; actualizarGesto(); };
+  // Táctil con eventos touch (en Android Chrome los punteros táctiles pueden
+  // cancelarse al llegar el segundo dedo); mouse y lápiz con eventos pointer.
+  const deToques = (ev) => {
+    punteros.clear();
+    for (const tq of ev.touches) punteros.set(`t${tq.identifier}`, local(tq));
+    actualizarGesto();
+    if (ev.cancelable) ev.preventDefault();
+  };
+  for (const n of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) toque.addEventListener(n, deToques, { passive: false });
+  const esTactil = (ev) => ev.pointerType === 'touch';
+  toque.addEventListener('pointerdown', (ev) => { if (esTactil(ev)) return; toque.setPointerCapture?.(ev.pointerId); punteros.set(ev.pointerId, local(ev)); actualizarGesto(); ev.preventDefault(); });
+  toque.addEventListener('pointermove', (ev) => { if (esTactil(ev) || !punteros.has(ev.pointerId)) return; punteros.set(ev.pointerId, local(ev)); actualizarGesto(); });
+  const fuera = (ev) => { if (esTactil(ev) || !punteros.delete(ev.pointerId)) return; actualizarGesto(); };
   toque.addEventListener('pointerup', fuera);
   toque.addEventListener('pointercancel', fuera);
   toque.addEventListener('wheel', (ev) => {
