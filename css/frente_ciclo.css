@@ -737,3 +737,41 @@ html[data-orient="h"][data-tam="s"] .fc-pc-col:nth-child(n+4) { border-top: 2px 
   html[data-orient="h"][data-tam="s"] .fc-pre-acciones { grid-template-columns: 1fr 1fr; grid-template-areas: "puerta carga" "desl desl"; row-gap: 0.35rem; }
 }
 .fc-vc.desplazable > * { flex-shrink: 0; }
+
+/* ---------- Celular horizontal REAL (Chrome / Safari con sus barras: 280–400 px de alto) ----------
+   Nada se comprime ni queda a medias encima de otro bloque:
+   Preciclo  → izquierda: tarjeta del ciclo + acciones en una fila; derecha: parámetros + alarmas.
+   Ciclo     → izquierda: tarjeta, fases y parámetros (se desplazan) + tiempos; derecha: gráfica a todo el alto. */
+@media (max-height: 400px) {
+  html[data-orient="h"][data-tam="s"] .fc-pre-sup { display: contents; }
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-tarjeta-principal { grid-template-columns: minmax(0, 56fr) minmax(0, 44fr);
+    grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "ciclo param" "acc alarmas"; }
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-tarjeta-ciclo { grid-template-columns: 1fr 1.25fr 1fr; align-self: start; }
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-tarjeta-param { margin: 0.4rem 0.5rem 0 0; align-self: start; }
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-pre-acciones { grid-template-columns: 1fr 1.15fr 1.1fr; grid-template-areas: "puerta carga desl";
+    row-gap: 0; align-self: end; }
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-tarjeta-alarmas { margin: 0.4rem 0.5rem 0 0; min-height: 0; overflow-y: auto;
+    touch-action: pan-y; overscroll-behavior: contain; scrollbar-width: none; }
+
+  html[data-orient="h"][data-tam="s"] .fc-ciclo .fc-tarjeta-principal { grid-template-columns: minmax(0, 48fr) minmax(0, 52fr);
+    grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "info graf" "tiempos graf"; overflow: hidden; }
+  html[data-orient="h"][data-tam="s"] .fc-cic-info { display: flex; flex-direction: column; grid-area: info; min-height: 0;
+    overflow-y: auto; overflow-x: hidden; touch-action: pan-y; overscroll-behavior: contain; scrollbar-width: none; }
+  html[data-orient="h"][data-tam="s"] .fc-cic-info::-webkit-scrollbar { display: none; }
+  html[data-orient="h"][data-tam="s"] .fc-cic-info > * { flex-shrink: 0; }
+  html[data-orient="h"][data-tam="s"] .fc-cic-graf { margin: 0.4rem 0.5rem 0 0; min-height: 0; }
+  html[data-orient="h"][data-tam="s"] .fc-cic-graf > .fc-panel-fin { min-height: 0; }
+}
+@media (max-height: 400px) {
+  /* la columna que se desplaza se desvanece en el borde: se lee como lista que continúa, no como encimada */
+  html[data-orient="h"][data-tam="s"] .fc-cic-info { padding-bottom: 1.1rem;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent); }
+  html[data-orient="h"][data-tam="s"] .fc-tc-ayuda { display: none; }
+  html[data-orient="h"][data-tam="s"] .fc-dz-texto { letter-spacing: 0; }
+}
+@media (max-height: 400px) and (max-width: 720px) {
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-tarjeta-principal { grid-template-columns: minmax(0, 50fr) minmax(0, 50fr); }
+  html[data-orient="h"][data-tam="s"] .fc-preciclo .fc-pre-acciones { grid-template-columns: 1fr 1fr; grid-template-areas: "puerta carga" "desl desl";
+    row-gap: 0.35rem; }
+}

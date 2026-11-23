@@ -224,3 +224,13 @@ html.teclado-abierto .raiz-modal { padding-bottom: calc(var(--alto-teclado) + va
   max-width: min(36rem, calc(100% - 2 * var(--margen)));
   text-align: center;
 }
+
+/* Celular en horizontal real (con las barras del navegador, ≤ 400 px de alto): el borde inferior de
+   un panel que se desplaza se desvanece, para que el contenido cortado se lea como «sigue abajo»
+   y no como un bloque montado encima de la barra inferior. */
+@media (max-height: 400px) {
+  html[data-orient="h"] .pantalla .desplazable {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent); }
+  html[data-orient="h"] .pantalla .desplazable { padding-bottom: 1.1rem; }
+}
