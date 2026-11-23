@@ -1,6 +1,9 @@
-// Arranque de la demo: escala, tema, idioma, navegación como Main.qml, standby,
-// wake lock durante el ciclo y registro del service worker con aviso de actualización.
-import { iniciar as iniciarEscala } from './core/escala.js';
+// Arranque de la demo: disposición adaptable, tema, idioma, navegación como Main.qml,
+// standby, wake lock durante el ciclo y registro del service worker con aviso de actualización.
+// A2: el arranque nunca espera a una API opcional (wake lock, audio, almacenamiento, service
+// worker); cada una va protegida y la intro tiene un tope para pasar a Reposo pase lo que pase.
+import './core/compat.js';          // primero: polyfills para WebKit antiguo
+import { iniciar as iniciarDisposicion } from './core/disposicion.js';
 import './core/tema.js';
 import * as router from './core/router.js';
 import { on } from './core/eventos.js';
@@ -37,7 +40,7 @@ export function irAReposo() {
 
 function vigilarSimulador(estado) {
   const m = estado.maquina;
-  mantenerPantalla(m === 'CICLO');
+  try { mantenerPantalla(m === 'CICLO'); } catch { /* Wake Lock no disponible */ }
   if (maquinaPrevia !== null && m !== maquinaPrevia) {
     const actual = router.actual();
     // Cambio automático a Ciclo en curso al iniciar (desde la principal) y vuelta a Preciclo al confirmar.
@@ -53,7 +56,11 @@ function vigilarSimulador(estado) {
 }
 
 function registrarServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
+  try { registrarServiceWorkerSinProteger(); } catch (e) { console.warn('[sw] no disponible:', e); }
+}
+
+function registrarServiceWorkerSinProteger() {
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
   navigator.serviceWorker.register('sw.js').then((reg) => {
     const avisar = () => {
       const caja = document.getElementById('capa-aviso');
@@ -86,8 +93,12 @@ function registrarServiceWorker() {
   });
 }
 
+// Tope de la intro (A2): si por cualquier motivo la animación no termina (pestaña en segundo
+// plano sin requestAnimationFrame, excepción en un cuadro…), a los 9 s se pasa a Reposo igual.
+const TOPE_INTRO_MS = 9000;
+
 async function arrancar() {
-  iniciarEscala();
+  iniciarDisposicion();
   window.addEventListener('pointerdown', () => { ultimoToque = Date.now(); }, { capture: true, passive: true });
   // Sin menú contextual (pulsación larga) ni gestos de zoom en iOS
   window.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -98,11 +109,19 @@ async function arrancar() {
   on('idioma', () => router.refrescar());
   on('tema', () => router.refrescar());
 
-  sim.arrancar();
+  try { sim.arrancar(); } catch (e) { console.error('[sim] no arrancó:', e); }
   await router.reiniciar('reposo');
-  await router.push('intro');   // la intro se quita sola al terminar (pop)
-  registrarServiceWorker();
+  try {
+    await router.push('intro');   // la intro se quita sola al terminar (pop)
+  } catch (e) { console.error('[intro]', e); }
+  setTimeout(() => { if (router.actual() === 'intro') router.pop(); }, TOPE_INTRO_MS);
+  // El service worker se registra después de mostrar la interfaz y nunca la retiene.
+  setTimeout(registrarServiceWorker, 0);
   console.info(`Especifika Autoclave Demo ${VERSION_DEMO}`);
 }
 
-arrancar().catch((e) => console.error('[app] error al arrancar:', e));
+arrancar().catch((e) => {
+  console.error('[app] error al arrancar:', e);
+  // Último recurso: que nunca quede la pantalla vacía.
+  try { router.reiniciar('reposo'); } catch { /* */ }
+});

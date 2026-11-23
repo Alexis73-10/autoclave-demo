@@ -20,7 +20,7 @@ export function abrirCalendario({ titulo = '', valor = '', permiteSinFecha = tru
   const rejilla = h('div', { class: 'cal-rejilla' });
   const flecha = (icono, d) => h('button', { class: 'cal-flecha', type: 'button',
     onclick: () => { mes += d; if (mes < 0) { mes = 11; anio--; } if (mes > 11) { mes = 0; anio++; } pintar(); } },
-    iconoMono(icono, { tam: 40, color: 'var(--c-texto-primario)' }));
+    iconoMono(icono, { tam: null, clase: 'cal-flecha-ico', color: 'var(--c-texto-primario)' }));
   const elegir = (f) => { elegido = true; cerrar(); alElegir?.(f); };
 
   function pintar() {
@@ -30,14 +30,14 @@ export function abrirCalendario({ titulo = '', valor = '', permiteSinFecha = tru
     rejilla.replaceChildren();
     for (let i = 0; i < 42; i++) {
       const d = i - desp + 1;
-      if (d < 1 || d > dias) { rejilla.append(h('div', { class: 'cal-celda' })); continue; }
+      if (d < 1 || d > dias) { rejilla.append(h('div', { class: 'cal-celda vacia' })); continue; }
       const f = `${anio}-${dos(mes + 1)}-${dos(d)}`;
       rejilla.append(h('button', { class: `cal-celda cal-dia${f === seleccion ? ' sel' : ''}${f === hoy ? ' hoy' : ''}`, type: 'button',
         onclick: () => elegir(f) }, h('span', { text: String(d) })));
     }
   }
   const boton = (txt, primario, fn) => h('button', { class: `cal-boton${primario ? ' primario' : ''}`, type: 'button', text: txt, onclick: fn });
-  const tarjeta = h('div', { class: 'cal-tarjeta' },
+  const tarjeta = h('div', { class: 'cal-tarjeta desplazable' },
     titulo ? h('div', { class: 'cal-titulo', text: titulo }) : null,
     h('div', { class: 'cal-cabecera' }, flecha('chevron_izquierda', -1), nombre, flecha('chevron_derecha', 1)),
     h('div', { class: 'cal-semana' }, [0, 1, 2, 3, 4, 5, 6].map((i) => h('span', { text: t(`calendario.dias_cortos.${i}`) }))),

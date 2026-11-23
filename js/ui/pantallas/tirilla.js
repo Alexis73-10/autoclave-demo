@@ -51,15 +51,16 @@ function tirillaRespaldo(r) {
 }
 
 export function crear(params = {}) {
-  const raiz = h('div', { class: 'fc-pantalla fc-tirilla' });
+  // Composición adaptable: título, papel centrado (24 columnas, la letra se ajusta al ancho
+  // en vertical y al alto en horizontal; se desplaza solo el rollo) y barra con Volver.
   const papel = h('pre', { class: 'fc-papel' });
   const rollo = h('div', { class: 'fc-rollo desplazable' }, h('div', { class: 'fc-papel-borde' }), papel, h('div', { class: 'fc-papel-corte' }));
   const volver = h('button', { class: 'fc-tir-volver', 'aria-label': t('acciones.cerrar') },
-    mascara('assets/iconos/color/back_icon.svg', 70, 'var(--c-icono-barra-menu)'));
+    mascara('assets/iconos/color/back_icon.svg', null, 'var(--c-icono-barra-menu)'));
   volver.addEventListener('click', () => router.pop());
   const titulo = h('div', { class: 'fc-tir-titulo', text: loc({ es: 'TIRILLA DEL CICLO', en: 'CYCLE TICKET' }) });
   const barra = h('div', { class: 'fc-tir-barra' }, volver, h('span', { class: 'marca-demo fc-tir-demo', text: 'DEMO' }));
-  raiz.append(crearFondo(), titulo, rollo, barra);
+  const raiz = h('div', { class: 'pantalla fc-pantalla fc-tirilla' }, crearFondo(), titulo, h('div', { class: 'fc-tir-centro' }, rollo), barra);
 
   let quitar = null, ultimo = '', enVivo = false;
   const pintar = (lineas) => {

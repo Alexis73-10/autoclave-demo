@@ -35,7 +35,7 @@ export function abrirAjuste(o) {
   function pintarControl() {
     control.replaceChildren();
     if (tipo === 'numero') {
-      const campo = h('button', { class: `op-aj-campo${editable ? '' : ' inactivo'}`, type: 'button', onclick: () => editable && abrirNumerico({ titulo, valor: nuevo, unidad, min, max, decimales,
+      const campo = h('button', { class: `op-aj-campo${editable ? '' : ' inactivo'}`, type: 'button', onclick: () => editable && abrirNumerico({ titulo, valor: nuevo, unidad, min, max, decimales, campo,
         alConfirmar: (v) => { nuevo = v; pintarControl(); } }) },
         h('span', { class: 'op-aj-campo-rotulo', text: t('opciones.toque_nuevo_valor') }), h('span', { class: 'op-aj-campo-valor', text: `${fmt(nuevo)}${unidad ? ` ${unidad}` : ''}` }));
       control.append(campo, h('div', { class: 'op-nota', text: t('opciones.rango_permitido', { min: fmt(min), max: fmt(max), unidad }) }));
@@ -62,15 +62,18 @@ export function abrirAjuste(o) {
   const cancelar = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: () => cerrar() });
 
   pintarControl();
-  const tarjeta = h('div', { class: 'op-aj' },
-    h('div', { class: 'op-aj-titulo', text: titulo }),
-    descripcion ? h('div', { class: 'op-aj-desc', text: descripcion }) : null,
-    h('div', { class: 'op-aj-celdas' }, celda(t('opciones.actual'), actual), celda(t('opciones.por_defecto'), defecto),
-      tipo === 'numero' ? celda(t('opciones.minimo'), min) : null, tipo === 'numero' ? celda(t('opciones.maximo'), max) : null),
-    control, error,
-    motivo ? h('div', { class: 'op-nota aviso', text: motivo }) : null,
-    ultima ? h('div', { class: 'op-nota', text: ultima }) : null,
-    h('div', { class: 'op-aj-botones' }, porDefecto.el, cancelar.el, guardarBtn.el));
+  // Dos columnas (datos | control) que en vertical se apilan y en horizontal van lado a lado (CSS).
+  const tarjeta = h('div', { class: 'op-aj desplazable' },
+    h('div', { class: 'op-aj-info' },
+      h('div', { class: 'op-aj-titulo', text: titulo }),
+      descripcion ? h('div', { class: 'op-aj-desc', text: descripcion }) : null,
+      h('div', { class: 'op-aj-celdas' }, celda(t('opciones.actual'), actual), celda(t('opciones.por_defecto'), defecto),
+        tipo === 'numero' ? celda(t('opciones.minimo'), min) : null, tipo === 'numero' ? celda(t('opciones.maximo'), max) : null)),
+    h('div', { class: 'op-aj-edicion' },
+      control, error,
+      motivo ? h('div', { class: 'op-nota aviso', text: motivo }) : null,
+      ultima ? h('div', { class: 'op-nota', text: ultima }) : null,
+      h('div', { class: 'op-aj-botones' }, porDefecto.el, cancelar.el, guardarBtn.el)));
   cerrar = abrirModal(tarjeta, { cerrarAlTocarVelo: true });
   return cerrar;
 }

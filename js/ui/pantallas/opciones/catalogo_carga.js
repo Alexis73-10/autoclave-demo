@@ -22,7 +22,7 @@ export function crear(ctx) {
   const resumen = h('div', { class: 'op-nota' });
   const cuerpo = h('div', { class: 'op-cat-cuerpo' });
   const buscar = crearCampoFormulario({ etiqueta: t('registro_carga.catalogo_buscar'), marcador: t('registro_carga.catalogo_buscar_titulo'), valor: '',
-    alTocar: () => abrirAlfanumerico({ titulo: t('registro_carga.catalogo_buscar_titulo'), valor: filtro, alEntregar: (v) => { filtro = v; buscar.actualizar({ valor: v }); pintar(); } }) });
+    alTocar: () => abrirAlfanumerico({ titulo: t('registro_carga.catalogo_buscar_titulo'), valor: filtro, campo: buscar.el, alEntregar: (v) => { filtro = v; buscar.actualizar({ valor: v }); pintar(); } }) });
 
   function guardarItems() { guardar('op_catalogo', items); pintar(); }
   function pintar() {
@@ -43,7 +43,7 @@ export function crear(ctx) {
   function editar(item) {
     let cerrar;
     const accion = (texto, fn, primario) => crearBotonFormulario({ texto, primario, alPulsar: () => { cerrar(); fn(); } }).el;
-    const caja = h('div', { class: 'op-modal' }, h('div', { class: 'op-modal-titulo', text: item.codigo }), h('div', { class: 'op-modal-texto', text: item.nombre }),
+    const caja = h('div', { class: 'op-modal desplazable' }, h('div', { class: 'op-modal-titulo', text: item.codigo }), h('div', { class: 'op-modal-texto', text: item.nombre }),
       h('div', { class: 'op-modal-botones' },
         accion(t('registro_carga.editar'), () => abrirAlfanumericoAccion({ titulo: item.codigo, valor: item.nombre, alEntregar: (v) => { if (v.trim()) { item.nombre = v.trim().slice(0, 60); guardarItems(); ctx.bitacora('catalogo_carga', { entidad: item.codigo }); } } })),
         accion(item.activo ? t('registro_carga.baja') : t('registro_carga.reactivar'), () => { item.activo = !item.activo; guardarItems(); ctx.bitacora('catalogo_carga', { entidad: item.codigo }); }, true),
@@ -53,8 +53,8 @@ export function crear(ctx) {
 
   function alta() {
     let codigo = '', nombre = '', cerrar;
-    const cCod = crearCampoFormulario({ etiqueta: t('registro_carga.col_codigo'), marcador: t('registro_carga.col_codigo'), alTocar: () => abrirAlfanumerico({ titulo: t('registro_carga.col_codigo'), valor: codigo, maxLargo: 64, alEntregar: (v) => { codigo = v.replace(/[|]/g, '').trim(); cCod.actualizar({ valor: codigo, error: '' }); } }) });
-    const cNom = crearCampoFormulario({ etiqueta: t('registro_carga.col_nombre'), marcador: t('registro_carga.col_nombre'), alTocar: () => abrirAlfanumerico({ titulo: t('registro_carga.col_nombre'), valor: nombre, maxLargo: 60, alEntregar: (v) => { nombre = v.trim(); cNom.actualizar({ valor: nombre, error: '' }); } }) });
+    const cCod = crearCampoFormulario({ etiqueta: t('registro_carga.col_codigo'), marcador: t('registro_carga.col_codigo'), alTocar: () => abrirAlfanumerico({ titulo: t('registro_carga.col_codigo'), valor: codigo, campo: cCod.el, maxLargo: 64, alEntregar: (v) => { codigo = v.replace(/[|]/g, '').trim(); cCod.actualizar({ valor: codigo, error: '' }); } }) });
+    const cNom = crearCampoFormulario({ etiqueta: t('registro_carga.col_nombre'), marcador: t('registro_carga.col_nombre'), alTocar: () => abrirAlfanumerico({ titulo: t('registro_carga.col_nombre'), valor: nombre, campo: cNom.el, maxLargo: 60, alEntregar: (v) => { nombre = v.trim(); cNom.actualizar({ valor: nombre, error: '' }); } }) });
     const ok = crearBotonFormulario({ texto: t('acciones.guardar'), primario: true, alPulsar: () => {
       if (!codigo) { cCod.actualizar({ error: t('validacion.obligatorio') }); return; }
       if (!nombre) { cNom.actualizar({ error: t('validacion.obligatorio') }); return; }
@@ -62,8 +62,8 @@ export function crear(ctx) {
       items = [...items, { codigo, nombre, activo: true, cantidad: 0 }]; cerrar(); guardarItems(); ctx.bitacora('catalogo_carga', { entidad: codigo });
     } });
     const cancelar = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: () => cerrar() });
-    cerrar = abrirModal(h('div', { class: 'op-modal ancho' }, h('div', { class: 'op-modal-titulo', text: t('registro_carga.alta_titulo') }),
-      cCod.el, h('div', { style: { height: '20px' } }), cNom.el, h('div', { class: 'op-modal-botones' }, cancelar.el, ok.el)), { cerrarAlTocarVelo: true });
+    cerrar = abrirModal(h('div', { class: 'op-modal ancho desplazable' }, h('div', { class: 'op-modal-titulo', text: t('registro_carga.alta_titulo') }),
+      cCod.el, h('div', { class: 'op-separador' }), cNom.el, h('div', { class: 'op-modal-botones' }, cancelar.el, ok.el)), { cerrarAlTocarVelo: true });
   }
 
   const nuevo = crearBotonFormulario({ texto: `+ ${t('registro_carga.alta')}`, primario: true, habilitado: puede, alPulsar: alta });

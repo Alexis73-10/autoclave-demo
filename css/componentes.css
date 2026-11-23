@@ -1,12 +1,3 @@
 /* Componentes compartidos (equivalentes a qml/Componentes). Cada frente agrega aquí
-   sus estilos con un comentario de cabecera por componente. */
-
-/* Modales (capas.js) */
-.raiz-modal { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.velo-modal { position: absolute; inset: 0; background: var(--c-velo); }
-.contenedor-modal { position: relative; }
-
-/* Aviso breve */
-.aviso-breve { position: absolute; left: 50%; bottom: 220px; transform: translateX(-50%); padding: 20px 36px;
-  border-radius: 16px; background: var(--c-fondo-marino-oscuro); color: #fff; font: 500 26px/1.3 var(--familia);
-  box-shadow: 0 6px 18px var(--c-sombra); max-width: 1000px; text-align: center; }
+   sus estilos con un comentario de cabecera por componente.
+   Los modales (capas.js) y el aviso breve están en base.css (composición adaptable). */

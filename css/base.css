@@ -1,11 +1,12 @@
-/* Base: marco con letterbox y lienzo de diseño 1200x1920 (Tema/Escala.qml, vertical).
-   Todas las medidas dentro de #lienzo van en px de DISEÑO; js/core/escala.js aplica
-   transform: scale(factor) para que el lienzo quepa en la pantalla conservando la proporción. */
+/* Base adaptable (parte B): la interfaz ocupa toda la ventana en cualquier tamaño y
+   orientación, sin escalado ni franjas. js/core/disposicion.js publica en <html>:
+     data-orient = v | h      (por proporción)
+     data-tam    = s | m | l  (por la dimensión menor: celular, celular grande/tableta pequeña, tableta)
+     data-standalone = 1      (instalada)
+   Medidas en rem (la raíz cambia con data-tam) y px reales; nada de px de diseño ni transform. */
 
 :root {
-  --ancho-diseno: 1200px;
-  --alto-diseno: 1920px;
-  --familia: "Montserrat", system-ui, sans-serif;
+  --familia: "Montserrat", system-ui, -apple-system, sans-serif;
   /* Tahoma (reloj) y Consolas (mono) son fuentes de Windows: no se redistribuyen.
      Se piden al sistema y, si no existen (Android, iOS), cae a Montserrat / monospace. */
   --familia-reloj: Tahoma, "Montserrat", system-ui, sans-serif;
@@ -13,23 +14,79 @@
   --dur-rapida: 150ms;
   --dur-normal: 250ms;
   --dur-lenta: 400ms;
+
+  /* Zonas seguras (notch, isla dinámica, barra de inicio) */
+  --sa-t: env(safe-area-inset-top, 0px);
+  --sa-r: env(safe-area-inset-right, 0px);
+  --sa-b: env(safe-area-inset-bottom, 0px);
+  --sa-l: env(safe-area-inset-left, 0px);
+
+  /* Toque mínimo (B4) */
+  --toque: 44px;
+
+  /* Tipografía: con la raíz mínima de 15 px, --t-xs = 12,2 px (nunca menos de 12 px, B4) */
+  --t-xs: 0.8125rem;
+  --t-s: 0.875rem;
+  --t-m: 1rem;
+  --t-l: 1.2rem;
+  --t-xl: 1.5rem;
+  --t-xxl: 2rem;
+  --t-gigante: clamp(2.4rem, 6vmin, 4.5rem);   /* reloj de Reposo, número de ciclo */
+
+  /* Espaciado */
+  --e-1: 0.25rem;
+  --e-2: 0.5rem;
+  --e-3: 0.75rem;
+  --e-4: 1rem;
+  --e-5: 1.5rem;
+  --e-6: 2rem;
+  --margen: clamp(0.5rem, 2.2vmin, 1.5rem);    /* margen exterior de las pantallas */
+
+  /* Radios y sombras */
+  --radio-s: 0.5rem;
+  --radio-m: 0.875rem;
+  --radio-l: 1.25rem;
+  --sombra-tarjeta: 0 2px 10px var(--c-sombra, rgba(0, 0, 0, 0.15));
+
+  /* Iconos */
+  --ico-s: 1.25rem;
+  --ico-m: 1.6rem;
+  --ico-l: 2.2rem;
+
+  /* Barras */
+  --alto-barra-superior: clamp(3.25rem, 9vmin, 5rem);
+  --alto-barra-inferior: clamp(3.5rem, 9vmin, 5.25rem);
+
+  /* Teclado en pantalla abierto (lo fija teclado.js; 0 si está cerrado) */
+  --alto-teclado: 0px;
+
+  /* Color de la barra de estado (meta theme-color; lo sincroniza tema.js) */
+  --color-barra: #213F68;
 }
+html[data-tema="oscuro"] { --color-barra: #070B10; }
+
+html { font-size: 15px; }
+html[data-tam="m"] { font-size: 16px; }
+html[data-tam="l"] { font-size: 18px; }
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
+  width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #000;
+  background: var(--color-barra);     /* el fondo cubre toda el área, también bajo la barra de estado */
   overscroll-behavior: none;          /* sin pull-to-refresh */
   touch-action: none;                 /* sin zoom ni desplazamiento del navegador */
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: var(--familia);
+  font-size: var(--t-m);
   color: var(--c-texto-primario, #031225);
   user-select: none;                  /* sin selección de texto */
   -webkit-user-select: none;
@@ -38,51 +95,63 @@ body {
 
 img, svg { -webkit-user-drag: none; user-select: none; pointer-events: none; }
 
+/* Marco = ventana completa. Sin franjas: el fondo de cada pantalla llega a los bordes. */
 #marco {
   position: fixed;
   inset: 0;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
+  overflow: hidden;
+  background: var(--color-barra);
 }
 
 #lienzo {
-  position: relative;
-  flex: none;
-  width: var(--ancho-diseno);
-  height: var(--alto-diseno);
-  transform-origin: center center;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   background: var(--c-fondo-panel);
-  contain: layout paint;
 }
 
 #pila, #capa-modal, #capa-teclado, #capa-aviso {
   position: absolute;
   inset: 0;
 }
+/* Cada capa es su propio contexto de apilamiento: ningún z-index dentro de una pantalla
+   puede pintarse por encima de un modal, del teclado o de un aviso. */
+#pila { isolation: isolate; z-index: 0; }
+#capa-modal { z-index: 10; }
+#capa-teclado { z-index: 20; }
+#capa-aviso { z-index: 30; }
 #capa-modal, #capa-teclado, #capa-aviso { pointer-events: none; }
 #capa-modal > *, #capa-teclado > *, #capa-aviso > * { pointer-events: auto; }
 
+/* Pantalla: ocupa la ventana; el contenido respeta las zonas seguras (padding) y los
+   fondos van como hijos position:absolute; inset:0, que cubren también el padding.
+   Columna flex: barra superior, contenido (flex: 1, min-height: 0) y barra inferior. */
 .pantalla {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l);
 }
 
-/* Desplazamiento interno de listas: solo dentro del lienzo, con el dedo */
+/* Contenido que puede no caber (celular horizontal): desplazamiento SOLO dentro del panel. */
 .desplazable {
   overflow-y: auto;
+  overflow-x: hidden;
   touch-action: pan-y;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  min-height: 0;
 }
 .desplazable::-webkit-scrollbar { display: none; }
+/* Con el teclado en pantalla abierto, el panel deja sitio para que el campo editado quede visible */
+html.teclado-abierto .desplazable { padding-bottom: var(--alto-teclado) !important; }
 
 button {
   font-family: inherit;
+  font-size: inherit;
   color: inherit;
   background: none;
   border: 0;
@@ -90,16 +159,21 @@ button {
   cursor: pointer;
   touch-action: manipulation;
 }
+/* Todo control tocable mide al menos 44 x 44 px (B4). */
+button, [role="button"], .tocable { min-width: var(--toque); min-height: var(--toque); }
 
 .oculto { display: none !important; }
 
-/* Marca discreta DEMO (barra inferior) */
+/* Utilidades de orientación: visible solo en una de las dos composiciones */
+html[data-orient="v"] .solo-h { display: none !important; }
+html[data-orient="h"] .solo-v { display: none !important; }
+
+/* Marca discreta DEMO */
 .marca-demo {
-  position: absolute;
-  font: 600 18px/1 var(--familia);
-  letter-spacing: 3px;
+  font: 600 var(--t-xs)/1 var(--familia);
+  letter-spacing: 0.2em;
   color: var(--c-texto-secundario, #6B7A90);
-  opacity: 0.55;
+  opacity: 0.6;
   pointer-events: none;
 }
 
@@ -107,13 +181,46 @@ button {
 .aviso-actualizacion {
   position: absolute;
   left: 50%;
-  top: 40px;
+  top: calc(var(--sa-t) + var(--e-4));
   transform: translateX(-50%);
-  padding: 24px 40px;
-  border-radius: 20px;
+  max-width: calc(100% - 2 * var(--margen));
+  padding: var(--e-3) var(--e-5);
+  border-radius: var(--radio-l);
   background: var(--c-accion-primario, #1168F6);
   color: #fff;
-  font: 600 28px/1.2 var(--familia);
-  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  font: 600 var(--t-m)/1.25 var(--familia);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
   z-index: 10;
+}
+
+/* Modales (capas.js): centrados, nunca más grandes que la ventana; el contenido largo
+   se desplaza dentro (.desplazable del propio modal). */
+.raiz-modal {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: calc(var(--sa-t) + var(--margen)) calc(var(--sa-r) + var(--margen)) calc(var(--sa-b) + var(--margen)) calc(var(--sa-l) + var(--margen));
+}
+/* Con el teclado en pantalla abierto, el modal se centra en el espacio que queda encima. */
+html.teclado-abierto .raiz-modal { padding-bottom: calc(var(--alto-teclado) + var(--margen)); }
+.velo-modal { position: absolute; inset: 0; background: var(--c-velo); }
+.contenedor-modal {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Aviso breve */
+.aviso-breve {
+  position: absolute; left: 50%; bottom: calc(var(--sa-b) + var(--alto-barra-inferior) + var(--e-4));
+  transform: translateX(-50%);
+  padding: var(--e-3) var(--e-5);
+  border-radius: var(--radio-m);
+  background: var(--c-fondo-marino-oscuro); color: #fff;
+  font: 500 var(--t-m)/1.3 var(--familia);
+  box-shadow: 0 6px 18px var(--c-sombra);
+  max-width: min(36rem, calc(100% - 2 * var(--margen)));
+  text-align: center;
 }

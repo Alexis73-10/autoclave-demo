@@ -1,15 +1,16 @@
 // Partes comunes de Preciclo y Ciclo en curso (interno del frente ciclo):
 // fondo, encabezado (logo, reloj, campana con insignia, engranaje), tarjeta de ciclo
 // (CICLO ACTIVO / PROGRAMA / ESTADO), tarjeta de parámetros (6 columnas) y barra
-// inferior personalizada (equipo, avatar). Coordenadas del mockup 1196x1917
-// (PantallaPreciclo.qml / PantallaCicloEnCurso.qml); el contenedor .fc-mockup las escala.
+// inferior personalizada (equipo, avatar). Composición adaptable (v1.1): layout fluido
+// con flex/grid; las proporciones salen de --fc-u (px reales por px del QML, con piso
+// de letra 12,2 px y toques de 44 px), ver css/frente_ciclo.css.
 import { h } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { on } from '../../core/eventos.js';
 import { tocar } from '../../core/sonido.js';
 import { sim } from '../../sim/motor.js';
 import * as historial from '../../sim/historial.js';
-import { txt, fijarTexto, caja, iconoCaja, mascara, medir, fechaEncabezado, dos, EQUIPO_DEMO,
+import { fijarTexto, encajar, mascara, fechaEncabezado, dos, EQUIPO_DEMO,
   fTempConsigna, fTempLectura, fMin, fPres, param } from './_ciclo_util.js';
 import { crearInsigniaCampana } from './panel_notificaciones.js';
 import { instalarPanelDemo } from './panel_demo.js';
@@ -28,110 +29,87 @@ export function crearFondo() { return h('div', { class: 'fc-fondo-app' }); }
 
 /** Encabezado: {el, actualizar(estado), destruir()} */
 export function crearEncabezado({ alCampana, alEngranaje } = {}) {
-  const el = h('div', { class: 'fc-encabezado' });
-  const logo = caja('img', 73, 57, 267, 267 * 42427 / 158611);
-  logo.src = 'assets/logo/logo-especifika-blanco.svg'; logo.alt = 'especifika'; logo.draggable = false;
-  const hora = txt('', { cx: 597.5, bl: 108, tam: 97, peso: 700, familia: 'reloj', color: 'var(--c-texto-sobre-accion)' });
-  const fecha = txt('', { cx: 598, bl: 141, tam: 26, familia: 'reloj', color: 'var(--c-texto-sobre-accion)' });
-  const campana = iconoCaja('campana', [888, 64, 51, 57], [5.85, 4.0, 42.15, 44.0]);
-  const insignia = crearInsigniaCampana({ tam: 26, tamFuente: 17 });
-  Object.assign(insignia.el.style, { left: '922px', top: '50px' });
-  const zCampana = caja('button', 870, 40, 90, 95, 'fc-zona');
-  zCampana.setAttribute('aria-label', t('notificaciones.titulo'));
-  zCampana.addEventListener('click', () => alCampana?.());
-  const engranaje = iconoCaja('engranaje', [1043, 64, 57, 58], [4.0, 4.0, 44.0, 44.0]);
-  const zEng = caja('button', 1025, 45, 95, 95, 'fc-zona');
-  zEng.setAttribute('aria-label', 'Menú');
-  zEng.addEventListener('click', () => alEngranaje?.());
-  // Panel oculto de la demo: pulsación larga de 3 s sobre el logo (zona táctil encima del <img>).
-  const zLogo = caja('div', 60, 40, 293, 100, 'fc-zona');
+  const logo = h('img', { class: 'fc-enc-logo-img', src: 'assets/logo/logo-especifika-blanco.svg', alt: 'especifika', draggable: 'false' });
+  // Panel oculto de la demo: pulsación larga de 3 s sobre el logo.
+  // Marca DEMO discreta bajo el logo (la demo no la tiene en la barra inferior: allí no siempre hay sitio).
+  const zLogo = h('div', { class: 'fc-enc-logo' }, logo, h('span', { class: 'marca-demo fc-marca-demo', text: 'DEMO' }));
   const quitarPanel = instalarPanelDemo(zLogo);
-  el.append(logo, hora, fecha, campana, insignia.el, engranaje, zCampana, zEng, zLogo);
-  const reloj = () => {
+  const hora = h('div', { class: 'fc-enc-hora' });
+  const fecha = h('div', { class: 'fc-enc-fecha' });
+  const reloj = h('div', { class: 'fc-enc-reloj' }, hora, fecha);
+  const insignia = crearInsigniaCampana();
+  const bCampana = h('button', { class: 'fc-enc-boton campana', 'aria-label': t('notificaciones.titulo') },
+    h('img', { src: 'assets/iconos/color/campana.svg', alt: '', draggable: 'false' }), insignia.el);
+  bCampana.addEventListener('click', () => alCampana?.());
+  const bEng = h('button', { class: 'fc-enc-boton engranaje', 'aria-label': 'Menú' },
+    h('img', { src: 'assets/iconos/color/engranaje.svg', alt: '', draggable: 'false' }));
+  bEng.addEventListener('click', () => alEngranaje?.());
+  const el = h('header', { class: 'fc-encabezado' }, zLogo, reloj, h('div', { class: 'fc-enc-der' }, bCampana, bEng));
+  const pintarReloj = () => {
     const d = new Date();
     fijarTexto(hora, `${dos(d.getHours())}:${dos(d.getMinutes())}`);
     fijarTexto(fecha, fechaEncabezado(d));
   };
-  reloj();
-  const tReloj = setInterval(reloj, 1000);
+  pintarReloj();
+  const tReloj = setInterval(pintarReloj, 1000);
   return { el, actualizar: (e) => insignia.actualizar(e), destruir: () => { clearInterval(tReloj); quitarPanel?.(); } };
-}
-
-/** Divisor vertical de 2 px centrado en cx. */
-export function divisor(cx, y0, y1, color) {
-  return caja('div', cx - 1, y0, 2, y1 - y0, 'fc-div', { background: color });
-}
-
-/** Etiqueta (TextoAjustable): texto completo si cabe, si no abrev.<clave>. */
-export function etiqueta(clave, lx, bl, limite) {
-  const disp = limite - lx - 4;
-  const completo = t(clave);
-  const abrevClave = `abrev.${clave}`;
-  const abrev = t(abrevClave);
-  const texto = medir(completo, 12, 600) <= disp || abrev === abrevClave ? completo : abrev;
-  return txt(texto, { lx, bl, tam: 12, peso: 600, color: 'var(--c-texto-etiqueta)', ancho: disp });
 }
 
 /**
  * Tarjeta de ciclo: número, programa (con «toque para cambiar» opcional) y estado.
- * modo 'preciclo' | 'ciclo'. -> {el, fijar({numero, programa, ayuda, estado, vigente})}
+ * -> {el, fijar({numero, programa, ayuda, estado, vigente, modo})}
  * estado = {tipo: 'listo'|'no_listo'|'ejecutando'|'exitoso'|'fallo'|'cancelado', texto}
  */
 export function crearTarjetaCiclo({ alTocarPrograma = null } = {}) {
-  const el = h('div', { class: 'fc-tarjeta-ciclo' });
-  el.append(caja('div', 19, 404, 1159, 2, '', { background: 'var(--c-borde-tarjeta)' }),
-    divisor(351, 219, 384, 'var(--c-divisor-ciclo)'), divisor(839, 219, 384, 'var(--c-divisor-ciclo)'));
-  const rot = (cx, clave) => txt(t(clave), { cx, bl: 229, tam: 17, peso: 500, color: 'var(--c-texto-negro)' });
-  el.append(rot(199, 'ciclo.activo'), rot(599.5, 'ciclo.programa'), rot(1011, 'ciclo.estado'));
-  const numero = txt('', { cx: 200, bl: 333, tam: 103, peso: 700, familia: 'num', color: 'var(--c-texto-negro)' });
-  const programa = txt('', { cx: 599, bl: 308, tam: 36, peso: 700, color: 'var(--c-texto-programa)' });
-  const programa2 = caja('div', 351 + 12, 248, 464, 84, 'fc-programa-2l oculto');
-  const ayuda = txt(t('selector_ciclo.ayuda'), { cx: 599, bl: 352, tam: 16, color: 'var(--c-texto-guia)' });
-  const circulo = caja('div', 972, 256, 78, 78, 'fc-estado-circulo');
-  const check = mascara('assets/iconos/mono/confirmar.svg', 62, 'var(--c-texto-sobre-accion)', 'fc-estado-check');
+  const tag = alTocarPrograma ? 'button' : 'div';
+  const rot = (clave) => h('div', { class: 'fc-tc-rot fc-encaja', text: t(clave) });
+  const numero = h('div', { class: 'fc-tc-numero fc-encaja' });
+  const programa = h('div', { class: 'fc-tc-programa' });
+  const ayuda = h('div', { class: 'fc-tc-ayuda fc-ayuda', text: t('selector_ciclo.ayuda') });
+  const check = mascara('assets/iconos/mono/confirmar.svg', null, 'var(--c-texto-sobre-accion)', 'fc-estado-check');
   const excl = h('span', { class: 'fc-estado-excl', text: '!' });
   const ejec = h('span', { class: 'fc-icono-ejecucion' },
-    mascara('assets/imagenes/flechas.svg', 72, 'var(--c-texto-sobre-accion)', 'flechas'),
-    mascara('assets/imagenes/engranaje_ejecucion.svg', 72, 'var(--c-texto-sobre-accion)', 'engranaje'));
-  circulo.append(check, excl, ejec);
-  const textoEstado = txt('', { cx: 1010, bl: 375, tam: 22, peso: 600, color: 'var(--c-naranja-texto)' });
-  el.append(numero, programa, programa2, ayuda, circulo, textoEstado);
-  if (alTocarPrograma) {
-    const z1 = caja('button', 351, 219, 488, 165, 'fc-zona'); z1.addEventListener('click', alTocarPrograma);
-    const z2 = caja('button', 34, 219, 317, 165, 'fc-zona'); z2.addEventListener('click', alTocarPrograma);
-    el.append(z1, z2);
-  }
+    mascara('assets/imagenes/flechas.svg', null, 'var(--c-texto-sobre-accion)', 'flechas'),
+    mascara('assets/imagenes/engranaje_ejecucion.svg', null, 'var(--c-texto-sobre-accion)', 'engranaje'));
+  const circulo = h('div', { class: 'fc-estado-circulo' }, check, excl, ejec);
+  const textoEstado = h('div', { class: 'fc-tc-estado-texto fc-encaja' });
+  const cNum = h(tag, { class: 'fc-tc-col numero' }, rot('ciclo.activo'), numero);
+  const cProg = h(tag, { class: 'fc-tc-col programa' }, rot('ciclo.programa'), programa, ayuda);
+  const cEst = h('div', { class: 'fc-tc-col estado' }, rot('ciclo.estado'), circulo, textoEstado);
+  if (alTocarPrograma) [cNum, cProg].forEach((b) => b.addEventListener('click', alTocarPrograma));
+  const el = h('div', { class: 'fc-tarjeta-ciclo' }, cNum, cProg, cEst);
   let previo = '';
   return {
     el,
+    ajustar() { if (!ayuda.classList.contains('oculto')) ajustarAyuda(ayuda); },
     fijar({ numero: n = '', programa: p = '', ayuda: a = false, estado = {}, vigente = true, modo = 'preciclo' }) {
       const firma = [n, p, a, estado.tipo, estado.texto, vigente, modo].join('|');
       if (firma === previo) return;
       previo = firma;
       fijarTexto(numero, n || t('sistema.sin_lectura'));
-      numero.style.color = vigente ? 'var(--c-texto-negro)' : 'var(--c-texto-guia)';
-      const nombre = p || t('sistema.sin_lectura');
-      const dosLineas = medir(nombre, 36, 700) > 464;
-      fijarTexto(programa, nombre);
-      programa.classList.toggle('oculto', dosLineas);
-      programa2.classList.toggle('oculto', !dosLineas);
-      programa2.textContent = nombre;
-      if (dosLineas) programa2.style.fontSize = `${Math.max(14, Math.min(36, Math.floor(36 * 2 * 440 / medir(nombre, 36, 700))))}px`;
+      numero.classList.toggle('sin-datos', !vigente);
+      programa.textContent = p || t('sistema.sin_lectura');
       ayuda.classList.toggle('oculto', !a);
+      if (a) ajustarAyuda(ayuda);
       const tipo = estado.tipo || 'no_listo';
       const verde = tipo === 'listo' || tipo === 'ejecutando' || tipo === 'exitoso';
       circulo.dataset.tipo = tipo;
-      if (modo === 'ciclo') { Object.assign(circulo.style, { left: '970px', top: '254px', width: '80px', height: '80px' }); textoEstado._fc.bl = 380; }
       circulo.classList.toggle('verde', verde);
       check.classList.toggle('oculto', !(tipo === 'listo' || tipo === 'exitoso'));
       excl.classList.toggle('oculto', verde);
       ejec.classList.toggle('oculto', tipo !== 'ejecutando');
-      check.style.width = check.style.height = modo === 'ciclo' ? '64px' : '62px';
-      textoEstado.style.top = `${(modo === 'ciclo' ? 380 : 375) - 0.858 * 22}px`;
       fijarTexto(textoEstado, estado.texto || '');
-      textoEstado.style.color = verde ? 'var(--c-estado-ejecucion)' : 'var(--c-naranja-texto)';
+      textoEstado.classList.toggle('verde', verde);
     },
   };
+}
+
+/** «Toque para cambiar de ciclo»: una línea si cabe con la letra nominal o reducida; si no, dos. */
+export function ajustarAyuda(el) {
+  el.classList.remove('envuelve');
+  el.classList.add('fc-encaja');
+  encajar(el);
+  if (el.scrollWidth > el.clientWidth + 0.5) { el.classList.remove('fc-encaja'); el.style.fontSize = ''; el.classList.add('envuelve'); }
 }
 
 /** Entradas mostradas por defecto (O3): temperatura de cámara, de referencia y presión. */
@@ -141,43 +119,71 @@ export const ENTRADAS = [
   { clave: 'pres_camara', tipo: 'pres', sensor: 'pres_camara', color: 'var(--c-valor-presion)' },
 ];
 
-/** Tarjeta de parámetros (6 columnas). dy = 0 (Preciclo) o 151 (Ciclo en curso). -> {el, fijar(prog, sensores, vigente)} */
-export function crearTarjetaParametros({ dy = 0 } = {}) {
-  const el = h('div', { class: 'fc-tarjeta-param' });
-  el.style.transform = `translateY(${dy}px)`;
-  el.append(caja('div', 34, 425, 1129, 208, 'fc-param-marco'));
-  [[222.2, 604], [410.3, 604], [598.5, 608], [786.7, 606], [974.8, 606]].forEach(([cx, y1]) =>
-    el.append(divisor(cx, 452, y1, 'var(--c-divisor-param)')));
-  const valor = (cx, color) => txt('', { cx, bl: 554, tam: 55, peso: 700, familia: 'num', color, ancho: 182 });
-  const unidad = (cx, texto) => txt(texto, { cx, bl: 606, tam: 27, peso: 700, familia: 'num', color: 'var(--c-texto-unidad)' });
+/** Etiqueta (TextoAjustable): texto completo si cabe en una línea, si no abrev.<clave>. */
+function crearEtiqueta(clave) {
+  const completo = t(clave);
+  const ak = `abrev.${clave}`;
+  const abrev = t(ak);
+  const el = h('span', { class: 'fc-pc-rot', text: completo });
+  el._fc = { completo, abrev: abrev === ak ? completo : abrev };
+  return el;
+}
+/** Elige completo/abreviado según el ancho actual (lo llama la tarjeta al cambiar de tamaño).
+ *  Si ni el abreviado cabe al lado del icono, el icono pasa arriba (columna .apilada); si aun
+ *  así no cabe en una línea, se envuelve en palabras. */
+function ajustarEtiqueta(el) {
+  const { completo, abrev } = el._fc;
+  const col = el.closest('.fc-pc-col');
+  const cabe = () => el.scrollWidth <= el.clientWidth + 0.5;
+  el.classList.remove('envuelve');
+  col?.classList.remove('apilada');
+  el.style.whiteSpace = 'nowrap';          // se mide en una línea aunque el CSS permita envolver
+  el.textContent = completo;
+  if (!cabe() && abrev !== completo) el.textContent = abrev;
+  if (!cabe() && col) {
+    col.classList.add('apilada');
+    el.textContent = completo;
+    if (!cabe() && abrev !== completo) el.textContent = abrev;
+  }
+  if (!cabe()) el.classList.add('envuelve');
+  el.style.whiteSpace = '';
+}
+
+/** Tarjeta de parámetros (6 columnas). -> {el, fijar(prog, sensores, vigente), ajustar()} */
+export function crearTarjetaParametros() {
+  const columnas = [];
+  const etiquetas = [];
+  const col = (icono, clave, color, unidad) => {
+    const et = crearEtiqueta(clave);
+    etiquetas.push(et);
+    const valor = h('div', { class: 'fc-pc-valor fc-encaja' });
+    if (color) valor.style.color = color;
+    const c = h('div', { class: 'fc-pc-col' },
+      h('div', { class: 'fc-pc-cab' }, icono, et), h('div', { class: 'fc-pc-med' }, valor, h('div', { class: 'fc-pc-unidad', text: unidad })));
+    columnas.push(c);
+    return valor;
+  };
   const uT = t('unidades.temperatura'), uMin = t('unidades.tiempo'), uP = t('unidades.presion');
-  el.append(iconoCaja('sensor_temperatura', [59.1, 448, 20, 33], [12.25, 4.0, 36.55, 44.0]),
-    etiqueta('ciclo.temp_ester', 115.1, 469, 222.2));
-  const vTemp = valor(128.1, 'var(--c-texto-negro)'); el.append(vTemp, unidad(127.6, uT));
-  el.append(iconoCaja('sensor_tiempo', [246.7, 447, 35, 35], [5.9, 5.9, 42.1, 42.1]),
-    etiqueta('ciclo.tiempo_est', 309.7, 467, 410.3));
-  const vTiempo = valor(316.2, 'var(--c-texto-negro)'); el.append(vTiempo, unidad(322.7, uMin));
-  el.append(iconoCaja('sensor_tiempo_secado', [437.4, 446, 27, 39], [10.05, 4.2, 37.95, 43.8], 'var(--c-texto-guia)'),
-    etiqueta('ciclo.tiempo_sec', 493.4, 467, 598.5));
-  const vSecado = valor(504.4, 'var(--c-texto-negro)'); el.append(vSecado, unidad(504.4, uMin));
-  const vEntradas = ENTRADAS.map((en, i) => {
-    const c0 = [598.5, 786.7, 974.8][i];
-    const pres = en.tipo === 'pres';
-    el.append(pres
-      ? iconoCaja('sensor_presion', [c0 + 31.6, 450, 37, 31], [5.3, 8.0, 43.7, 40.85])
-      : iconoCaja('sensor_temperatura_2', [c0 + 26.6, 448, 20, 33], [12.25, 4.0, 36.55, 44.0]),
-    etiqueta(`ciclo.entrada_corta_${en.clave}`, c0 + (pres ? 99.6 : 73.6), pres ? 467 : 469, c0 + 188.2));
-    const v = valor(c0 + 94.1, en.color);
-    el.append(v, unidad(c0 + (pres ? 109.6 : 85.1), pres ? uP : uT));
-    return v;
-  });
+  const ico = (n, color = null) => (color
+    ? mascara(`assets/iconos/mono/${n}.svg`, null, color, 'fc-pc-ico')
+    : h('img', { class: 'fc-pc-ico', src: `assets/iconos/color/${n}.svg`, alt: '', draggable: 'false' }));
+  const vTemp = col(ico('sensor_temperatura'), 'ciclo.temp_ester', null, uT);
+  const vTiempo = col(ico('sensor_tiempo'), 'ciclo.tiempo_est', null, uMin);
+  const vSecado = col(ico('sensor_tiempo_secado', 'var(--c-texto-guia)'), 'ciclo.tiempo_sec', null, uMin);
+  const vEntradas = ENTRADAS.map((en) => col(ico(en.tipo === 'pres' ? 'sensor_presion' : 'sensor_temperatura_2'),
+    `ciclo.entrada_corta_${en.clave}`, en.color, en.tipo === 'pres' ? uP : uT));
+  const el = h('div', { class: 'fc-tarjeta-param' }, columnas);
+  const ajustar = () => {
+    etiquetas.forEach(ajustarEtiqueta);
+    [vTemp, vTiempo, vSecado, ...vEntradas].forEach((v) => encajar(v));
+  };
   return {
-    el,
+    el, ajustar,
     fijar(prog, sensores = {}, vigente = true) {
       fijarTexto(vTemp, fTempConsigna(param(prog, 'esterilizacion', 'temperatura_esterilizacion')));
       fijarTexto(vTiempo, fMin(param(prog, 'esterilizacion', 'tiempo_esterilizacion')));
       fijarTexto(vSecado, fMin(param(prog, 'secado', 'tiempo_secado')));
-      [vTemp, vTiempo, vSecado].forEach((v) => { v.style.color = vigente ? 'var(--c-texto-negro)' : 'var(--c-texto-guia)'; });
+      [vTemp, vTiempo, vSecado].forEach((v) => v.classList.toggle('sin-datos', !vigente));
       ENTRADAS.forEach((en, i) => {
         const raw = vigente ? sensores?.[en.sensor] : null;
         fijarTexto(vEntradas[i], en.tipo === 'pres' ? fPres(raw) : fTempLectura(raw));
@@ -190,30 +196,25 @@ export function crearTarjetaParametros({ dy = 0 } = {}) {
 /**
  * Barra inferior personalizada (BarraInferiorMenu personalizada): celda izquierda
  * equipo (abre el panel), avatar en la celda indicada ('centro' | 'derecha').
- * -> {el, mx(v), celdaDerecha (nodo), celdaCentro (nodo)}
+ * -> {el, mx(v), celdaCentro (nodo), celdaDerecha (nodo), avatar, demo}
  */
 export function crearBarraInferior({ avatarEn = 'derecha', alEquipo, alAvatar } = {}) {
-  const ancho = 1159;
-  const fx = ancho / 1128;
-  const mx = (v) => v * fx;
-  const el = caja('div', 19, 1746, ancho, 139, 'fc-barra-inferior');
-  el.append(divisor(mx(313), 19, 125, 'var(--c-divisor-pie)'), divisor(mx(800), 19, 125, 'var(--c-divisor-pie)'));
-  const equipo = caja('button', 0, 0, mx(313), 139, 'fc-zona fc-celda-equipo');
-  const icono = caja('img', 71 - 5.5 - 34, 1763 - 5.5 - 1746, 94, 62);
-  icono.src = 'assets/iconos/color/icono_autoclave.svg'; icono.alt = ''; icono.draggable = false;
-  const pie = (bl, texto) => txt(texto, { lx: 36, bl: bl - 1746, tam: 17, peso: 600, color: 'var(--c-texto-pie)', ancho: mx(313) - 42 });
-  equipo.append(icono, pie(1838, t('ciclo.modelo') + EQUIPO_DEMO.modelo), pie(1862, t('ciclo.serie') + EQUIPO_DEMO.serie));
+  const modelo = h('span', { class: 'fc-bi-texto', text: t('ciclo.modelo') + EQUIPO_DEMO.modelo });
+  const serie = h('span', { class: 'fc-bi-texto', text: t('ciclo.serie') + EQUIPO_DEMO.serie });
+  const equipo = h('button', { class: 'fc-celda-equipo', 'aria-label': t('equipo.titulo') },
+    h('img', { class: 'fc-bi-icono', src: 'assets/iconos/color/icono_autoclave.svg', alt: '', draggable: 'false' }),
+    h('span', { class: 'fc-bi-textos' }, modelo, serie));
   equipo.addEventListener('click', () => alEquipo?.());
-  const celdaCentro = caja('div', mx(313), 0, mx(800) - mx(313), 139, 'fc-celda');
-  const celdaDerecha = caja('div', mx(800), 0, ancho - mx(800), 139, 'fc-celda');
+  const celdaCentro = h('div', { class: 'fc-celda centro' });
+  const celdaDerecha = h('div', { class: 'fc-celda derecha' });
   const avatar = h('button', { class: 'fc-avatar', 'aria-label': t('acciones.iniciar_sesion') },
     h('img', { src: 'assets/iconos/color/usuario.svg', alt: '', draggable: 'false' }));
   avatar.addEventListener('click', () => alAvatar?.());
   (avatarEn === 'centro' ? celdaCentro : celdaDerecha).append(avatar);
+  // La marca DEMO va en el encabezado (crearEncabezado); se conserva el nodo por compatibilidad.
   const demo = h('span', { class: 'marca-demo fc-marca-demo', text: 'DEMO' });
-  celdaCentro.append(demo);
-  el.append(equipo, celdaCentro, celdaDerecha);
-  return { el, mx, celdaCentro, celdaDerecha, avatar, demo };
+  const el = h('footer', { class: `fc-barra-inferior avatar-${avatarEn}` }, equipo, celdaCentro, celdaDerecha);
+  return { el, mx: (v) => v, celdaCentro, celdaDerecha, avatar, demo };
 }
 
 /** Número de ciclo para la cabecera de Preciclo (el siguiente al último). */

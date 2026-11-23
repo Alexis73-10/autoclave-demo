@@ -72,7 +72,7 @@ export function abrirVentanaCarga({ alCerrar = null } = {}) {
   const boton = (texto, fn, clase = '') => h('button', { class: `fc-vc-boton ${clase}`, text: texto, onclick: fn });
   const v = abrirVentanaFlotante({
     titulo: t('registro_carga.ventana_titulo'), altoTarjeta: 1300, alCerrar,
-    contenido: h('div', { class: 'fc-vc' },
+    contenido: h('div', { class: 'fc-vc desplazable' },   // en celular horizontal se desplaza dentro
       h('div', { class: 'fc-vc-paso', text: `${t('registro_carga.paso_lote')}  ·  ${t('registro_carga.paso_elementos')}` }),
       lote,
       h('div', { class: 'fc-vc-acciones' },

@@ -1,5 +1,6 @@
 // Reposo (Pantallas/Reposo.qml): logo, reloj gigante con contorno blanco y fecha. Tocar cualquier punto
 // despierta y va a la pantalla principal. El logo abre el panel oculto de la demo con 3 s de pulsación.
+// Vertical: columna centrada. Horizontal: logo a la izquierda y reloj con fecha a la derecha (solo CSS).
 import { h } from '../../core/dom.js';
 import { irAPrincipal } from '../../app.js';
 import { crearFondoApp } from '../componentes/fondo_app.js';
@@ -7,10 +8,10 @@ import { instalarPanelDemo } from '../componentes/panel_demo.js';
 import { reloj, horaHM, fechaBarra } from '../componentes/menu_util.js';
 
 export function crear() {
-  const logo = h('img', { class: 'rps-logo', src: 'assets/logo/logo-especifika-blanco.svg', alt: '', draggable: 'false' });
+  const logo = h('img', { class: 'rps-logo mn-logo', src: 'assets/logo/logo-especifika-blanco.svg', alt: '', draggable: 'false' });
   const hora = h('div', { class: 'rps-hora' });
   const fecha = h('div', { class: 'rps-fecha' });
-  const el = h('div', { class: 'rps-raiz' }, crearFondoApp('reposo'), h('div', { class: 'rps-columna' }, logo, hora, fecha));
+  const el = h('div', { class: 'rps-raiz' }, crearFondoApp('reposo'), h('div', { class: 'rps-columna' }, logo, h('div', { class: 'rps-separador' }), h('div', { class: 'rps-reloj' }, hora, fecha)));
   const detener = reloj((d) => { hora.textContent = horaHM(d); fecha.textContent = fechaBarra(d); });
   let largo = false;
   let id = null;

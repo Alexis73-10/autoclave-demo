@@ -22,11 +22,13 @@ export function resumenNotificaciones(estado = sim.estado) {
 
 /**
  * Insignia circular (InsigniaCampana.qml) para dibujar sobre una campana:
- * crearInsigniaCampana({tam = 26, tamFuente = 17}) -> { el, actualizar(estado) }.
- * El que la usa la posiciona (en Preciclo/Ciclo: x 922, y 50, 26 x 25).
+ * crearInsigniaCampana({tam, tamFuente}) -> { el, actualizar(estado) } (tam/tamFuente se aceptan
+ * por compatibilidad; el tamaño lo da el CSS). position:absolute, por defecto top/right 0.
  */
-export function crearInsigniaCampana({ tam = 26, tamFuente = 17 } = {}) {
-  const el = h('div', { class: 'fc-insignia oculto', style: { width: `${tam}px`, height: `${tam - 1}px`, fontSize: `${tamFuente}px` } });
+export function crearInsigniaCampana() {
+  // Tamaño por CSS (piso de letra 12,2 px). Por defecto se ancla arriba a la derecha de su
+  // contenedor (position: relative); quien quiera otra posición fija style.left/top.
+  const el = h('div', { class: 'fc-insignia oculto' });
   return {
     el,
     actualizar(estado) {
@@ -51,8 +53,8 @@ export function abrirPanelNotificaciones() {
   const grupos = GRUPOS.map((g) => {
     const seguridad = crearSeccionEstadoSeguro({ grupo: g.seccion });
     const contador = h('span', { class: 'fc-pn-contador', text: '0' });
-    const chevron = mascara('assets/iconos/color/chevron_abajo.svg', 40, 'var(--c-texto-negro)', 'fc-pn-chevron');
-    const cabecera = h('div', { class: 'fc-pn-cabecera' },
+    const chevron = mascara('assets/iconos/color/chevron_abajo.svg', null, 'var(--c-texto-negro)', 'fc-pn-chevron');
+    const cabecera = h('button', { class: 'fc-pn-cabecera' },
       h('span', { class: 'fc-pn-titulo', text: t(g.clave) }), contador, chevron);
     const filas = h('div', { class: 'fc-pn-filas' }, seguridad.el);
     const lista = h('div', { class: 'fc-pn-lista' });

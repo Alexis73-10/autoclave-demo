@@ -6,6 +6,7 @@
 //
 // armarFin(ciclo) -> {modo:''|'fallo'|'cancelado'|'emergencia'|'observaciones', horaFin, causa, alarmas, cantidad, notaObservaciones}
 // crearPanelFinCiclo({ancho, alto, alVerGrafica}) -> {el, fijar(fin, subtitulo), volverAlPanel()}
+// (`ancho`/`alto` se aceptan por compatibilidad; el tamaño lo da el contenedor)
 import { h } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { hms, dos, valorI18n, textosAlarma } from './_ciclo_util.js';
@@ -82,7 +83,7 @@ function filaAcordeon({ destacada = false, titulo = '', subtitulo = '', hora = '
     queHacer ? h('div', { class: 'fc-fac-rot', text: t('ciclo.fin_que_hacer') }) : null,
     queHacer ? h('div', { class: 'fc-fac-desc', text: queHacer }) : null,
     meta ? h('div', { class: 'fc-fac-meta', text: meta }) : null);
-  const el = h('div', { class: `fc-fila-acordeon${destacada ? ' destacada' : ''}` },
+  const el = h('div', { class: `fc-fila-acordeon tocable${destacada ? ' destacada' : ''}`, role: 'button' },
     h('span', { class: 'fc-fac-barra', style: { background: color } }),
     h('div', { class: 'fc-fac-cont' },
       h('div', { class: 'fc-fac-cab' },
@@ -94,8 +95,9 @@ function filaAcordeon({ destacada = false, titulo = '', subtitulo = '', hora = '
   return { el, abrir(v) { el.classList.toggle('abierta', v); } };
 }
 
-export function crearPanelFinCiclo({ ancho = 1129, alto = 794, alVerGrafica = null } = {}) {
-  const el = h('div', { class: 'fc-panel-fin', style: { width: `${ancho}px`, height: `${alto}px` } });
+export function crearPanelFinCiclo({ alVerGrafica = null } = {}) {
+  // Ocupa la caja de la gráfica (100 % x 100 %); la lista de alarmas se desplaza dentro.
+  const el = h('div', { class: 'fc-panel-fin' });
   const titulo = h('div', { class: 'fc-pf-titulo' });
   const sub = h('div', { class: 'fc-pf-sub' });
   const cab = h('div', { class: 'fc-pf-cab' }, titulo, sub);

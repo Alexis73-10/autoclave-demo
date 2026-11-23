@@ -1,6 +1,8 @@
-// BarraFases (Componentes/BarraFases.qml) + ConectorFase: círculos de 85 con
-// centros repartidos entre x 128 y 1068 (y 480), conectores de 7 de alto (y 477) y
-// etiqueta 13,5 SemiBold con línea base 550. Compara cada arreglo de fases con el
+// BarraFases (Componentes/BarraFases.qml) + ConectorFase: círculos de 85 (escalados)
+// con centros repartidos en columnas iguales, conectores de 7 de alto y etiqueta 13,5
+// SemiBold debajo (piso 12,2 px). Composición adaptable: mide su ancho real con
+// observarTamano y dispone círculos, conectores y etiquetas en px reales; si los nombres
+// no caben usa abreviaturas de la demo y, si aún no caben, etiquetas en dos alturas. Compara cada arreglo de fases con el
 // anterior y elige por círculo un modo como el QML: fijar (primera carga, 2 s tras
 // mostrarse, otro ciclo), fraccion, cierre (sube a 1 en 300 ms y 300 ms después el
 // conector se llena en 600 ms; la siguiente entra tras 900 ms), salto y terminacion.
@@ -8,20 +10,24 @@
 //
 // crearBarraFases() -> {el, fijar(fases, {vigente, cicloId}), fijarVisible(bool), destruir()}
 // fases = sim.estado.ciclo.fases: [{fase, estado, fraccion}]
-import { h } from '../../core/dom.js';
+import { h, observarTamano } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
-import { txt, caja } from './_ciclo_util.js';
+import { medir, loc, escalaU, LETRA_MIN } from './_ciclo_util.js';
 import { crearCirculoFase } from './circulo_fase.js';
 
-const X0 = 128, X1 = 1068, D = 85;
+// Abreviaturas propias de la demo (el software no las tiene: allí el ancho siempre alcanza).
+const ABREV = {
+  precalentamiento: { es: 'Precal.', en: 'Preheat' }, vacio: { es: 'Vacío', en: 'Vacuum' },
+  calentamiento: { es: 'Calent.', en: 'Heating' }, esterilizacion: { es: 'Ester.', en: 'Steril.' },
+  descompresion: { es: 'Descom.', en: 'Exhaust' }, secado: { es: 'Secado', en: 'Drying' },
+};
 const T = { cierreMs: 300, conectorMs: 600, saltoMs: 400 };
 const inOutQuad = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
 const outQuad = (x) => 1 - (1 - x) * (1 - x);
 
-function crearConector(x, w) {
+function crearConector() {
   const relleno = h('div', { class: 'fc-con-relleno' });
-  const el = caja('div', x, 477, w, 7, 'fc-conector');
-  el.append(relleno);
+  const el = h('div', { class: 'fc-conector' }, relleno);
   let p = 0, tween = null;
   const pintar = () => { relleno.style.transform = `scaleX(${p.toFixed(4)})`; };
   pintar();
@@ -48,32 +54,69 @@ function crearConector(x, w) {
 }
 
 export function crearBarraFases() {
-  const el = h('div', { class: 'fc-barra-fases' });
-  let items = [];          // [{circulo, conector, etiqueta}]
+  const el = h('div', { class: 'fc-barra-fases', 'data-solape-permitido': '' });
+  let items = [];          // [{circulo, conector, etiqueta, nombre, abrev}]
+  let ancho = 0;
   let previas = [];
   let claves = '';
   let primera = true, tPrimera = 0;
   let vigente = true, visible = true, cicloId = null;
   let raf = 0, tAnt = 0;
 
-  const centroX = (i, n) => (n > 1 ? X0 + i * (X1 - X0) / (n - 1) : (X0 + X1) / 2);
+  // Geometría en px reales (QML: columnas de 188, círculos de 85, etiqueta a 16 del círculo).
+  function disponer() {
+    const n = items.length;
+    if (!n || !ancho) return;
+    const u = escalaU();
+    const cw = ancho / n;
+    const D = Math.round(Math.max(30, Math.min(cw * 0.8, Math.max(36, 85 * u))));
+    const fs = Math.max(LETRA_MIN, 13.5 * u);
+    const cabe = (txts, w) => txts.every((x) => medir(x, fs, 600) <= w - 2);
+    const nombres = items.map((it) => it.nombre), cortos = items.map((it) => it.abrev);
+    let textos = nombres, dosAlturas = false;
+    if (!cabe(nombres, cw)) {
+      if (cabe(cortos, cw)) textos = cortos;
+      else { dosAlturas = true; textos = cabe(nombres, 2 * cw) ? nombres : cortos; }
+    }
+    const lh = Math.ceil(fs * 1.25);
+    const gap = Math.max(4, Math.round(16 * u));
+    const cy = D / 2;
+    const hc = Math.max(3, Math.round(7 * D / 85));
+    items.forEach((it, i) => {
+      const cx = cw * (i + 0.5);
+      it.circulo.fijarTamano(D);
+      Object.assign(it.circulo.el.style, { left: `${cx - D / 2}px`, top: '0px' });
+      const fila = dosAlturas && i % 2 === 1 ? 1 : 0;
+      const wEt = dosAlturas ? 2 * cw : cw;
+      Object.assign(it.etiqueta.style, { left: `${cx - wEt / 2}px`, width: `${wEt}px`, top: `${D + gap + fila * lh}px`,
+        fontSize: `${fs}px`, lineHeight: `${lh}px` });
+      if (it.etiqueta.textContent !== textos[i]) it.etiqueta.textContent = textos[i];
+      if (it.conector) {
+        const x0 = cw * (i - 0.5) + D / 2 - 1;
+        Object.assign(it.conector.el.style, { left: `${x0}px`, width: `${Math.max(0, cw - D + 2)}px`, top: `${cy - hc / 2}px`, height: `${hc}px` });
+      }
+    });
+    el.style.height = `${D + gap + (dosAlturas ? 2 : 1) * lh}px`;
+  }
+  const quitarObs = observarTamano(el, ({ ancho: w }) => { if (w !== ancho) { ancho = w; disponer(); } });
   const colorEtiqueta = (e) => (e === 'completada' ? 'var(--c-fase-etiqueta)' : e === 'activa' ? 'var(--c-fase-etiqueta-activa)' : 'var(--c-fase-pendiente-etiqueta)');
 
   function construir(fases) {
     el.replaceChildren();
     const n = fases.length;
     items = fases.map((f, i) => {
-      const cx = centroX(i, n);
-      const conector = i > 0 ? crearConector(centroX(i - 1, n) + D / 2 - 1, cx - centroX(i - 1, n) - D + 2) : null;
+      const conector = i > 0 ? crearConector() : null;
       const circulo = crearCirculoFase({ fase: f.fase });
-      Object.assign(circulo.el.style, { left: `${cx - D / 2}px`, top: `${480 - D / 2}px` });
-      const etiqueta = txt(t(`fases.${f.fase}`) === `fases.${f.fase}` ? '' : t(`fases.${f.fase}`), { cx, bl: 550, tam: 13.5, peso: 600 });
+      const nombre = t(`fases.${f.fase}`) === `fases.${f.fase}` ? '' : t(`fases.${f.fase}`);
+      const etiqueta = h('div', { class: 'fc-bf-etiqueta', text: nombre });
       if (conector) el.append(conector.el);
-      return { circulo, conector, etiqueta };
+      return { circulo, conector, etiqueta, nombre, abrev: ABREV[f.fase] ? loc(ABREV[f.fase]) : nombre };
     });
+    void n;
     // círculos encima de los conectores (z como el QML)
     items.forEach((it) => el.append(it.circulo.el, it.etiqueta));
     previas = [];
+    disponer();
   }
 
   function rearmarPrimera() {
@@ -158,6 +201,7 @@ export function crearBarraFases() {
       items.forEach((it) => it.circulo.fijarVisible(visible));
       if (visible) { rearmarPrimera(); arrancar(); } else { cancelAnimationFrame(raf); raf = 0; }
     },
-    destruir() { cancelAnimationFrame(raf); raf = 0; clearTimeout(tPrimera); },
+    disponer,
+    destruir() { cancelAnimationFrame(raf); raf = 0; clearTimeout(tPrimera); quitarObs(); },
   };
 }

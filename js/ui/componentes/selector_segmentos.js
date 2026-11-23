@@ -1,4 +1,4 @@
-// SelectorSegmentos.qml: segmentos iguales, alto 88, radio 8, activo accionPrimario.
+// SelectorSegmentos.qml: segmentos iguales, activo accionPrimario; si no caben en una fila, pasan a dos.
 // crearSelectorSegmentos({opciones:[{valor, etiqueta, habilitada?}], valor, habilitado=true, alElegir(valor)})
 //   -> { el, actualizar(datos) }
 import { h } from '../../core/dom.js';
@@ -16,6 +16,7 @@ export function crearSelectorSegmentos(op = {}) {
         h('span', { text: s.etiqueta }));
     }));
     el.classList.toggle('inactivo', !o.habilitado);
+    el.dataset.n = String(o.opciones.length);
   }
   pintar();
   return { el, actualizar(datos) { Object.assign(o, datos); pintar(); } };

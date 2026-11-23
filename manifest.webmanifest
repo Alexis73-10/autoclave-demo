@@ -9,8 +9,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "theme_color": "#2C4B70",
-  "background_color": "#1B222A",
+  "theme_color": "#213F68",
+  "background_color": "#213F68",
   "categories": ["medical", "productivity"],
   "icons": [
     { "src": "assets/pwa/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

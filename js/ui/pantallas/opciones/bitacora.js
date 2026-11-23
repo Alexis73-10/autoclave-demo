@@ -15,7 +15,7 @@ export function crear() {
   let usuario = '', categoria = '', desde = '', hasta = '', pagina = 0;
   let vivo = true;
 
-  const lista = h('div', { class: 'op-bit-lista' });
+  const lista = h('div', { class: 'op-bit-lista desplazable' });
   const error = h('div', { class: 'op-nota error' });
   const info = h('div', { class: 'op-bit-pag' });
 

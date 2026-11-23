@@ -1,11 +1,14 @@
-// Ciclo en curso (Pantallas/PantallaCicloEnCurso.qml, vertical): encabezado,
-// tarjeta de ciclo (EN EJECUCIÓN con IconoEjecucion; al terminar el resultado),
-// barra de fases con llenado líquido y vapor, tarjeta de parámetros (+151), gráfica
-// P/T con cursor y zoom (o PanelFinCiclo en un ciclo no exitoso), transcurrido,
-// progreso de la fase activa, barra de progreso global y barra inferior con el
-// deslizador rojo CANCELAR CICLO (sin modal, CAN-01..03), el indicador de espera de
-// la entrega o CONFIRMAR con su modal (ENT-09, FC-09). Coordenadas del mockup 1196x1917.
-import { h } from '../../core/dom.js';
+// Ciclo en curso (Pantallas/PantallaCicloEnCurso.qml): encabezado, tarjeta de ciclo
+// (EN EJECUCIÓN con IconoEjecucion; al terminar el resultado), barra de fases con
+// llenado líquido y vapor, tarjeta de parámetros, gráfica P/T con cursor y zoom (o
+// PanelFinCiclo en un ciclo no exitoso), transcurrido, progreso de la fase activa, barra
+// de progreso global y barra inferior con el deslizador rojo CANCELAR CICLO (sin modal,
+// CAN-01..03), el indicador de espera de la entrega o CONFIRMAR con su modal (ENT-09, FC-09).
+// Composición adaptable (v1.1): vertical = orden del QML (gráfica entre parámetros y
+// tiempos). Horizontal = tarjeta, fases, parámetros y tiempos a la izquierda, gráfica grande
+// a la derecha; cancelar / confirmar / espera siempre visibles en la barra inferior. Girar
+// no recrea nada: solo cambia el CSS y la gráfica se redibuja a su tamaño con sus datos.
+import { h, observarTamano } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { on } from '../../core/eventos.js';
 import * as router from '../../core/router.js';
@@ -13,7 +16,7 @@ import { hayModalAbierto, cerrarModales } from '../../core/capas.js';
 import { usuarioActual } from '../../core/sesion.js';
 import { sim } from '../../sim/motor.js';
 import { abrirConfiguracion } from '../../app.js';
-import { caja, txt, fijarTexto, mascara, medir, fReloj, fMmSs, dos, loc } from '../componentes/_ciclo_util.js';
+import { fijarTexto, mascara, fReloj, fMmSs, dos, loc, encajarTodo } from '../componentes/_ciclo_util.js';
 import { crearFondo, crearEncabezado, crearTarjetaCiclo, crearTarjetaParametros, crearBarraInferior,
   instalarSonidos } from '../componentes/_comun_pantalla_ciclo.js';
 import { abrirPanelNotificaciones } from '../componentes/panel_notificaciones.js';
@@ -60,99 +63,107 @@ export function textoProgreso(d) {
 export function crear() {
   instalarSonidos();
   const quitar = [];
-  const raiz = h('div', { class: 'fc-pantalla' });
-  const m = h('div', { class: 'fc-mockup' });
-  raiz.append(crearFondo(), m);
 
   const enc = crearEncabezado({ alCampana: () => abrirPanelNotificaciones(), alEngranaje: () => router.push('menu') });
-  m.append(enc.el, caja('div', 19, 177, 1159, 1746 - 10 - 177, 'fc-tarjeta-principal'));
   const tCiclo = crearTarjetaCiclo();
   const fases = crearBarraFases();
-  const tParam = crearTarjetaParametros({ dy: 151 });
-  m.append(tCiclo.el, fases.el, tParam.el);
+  const tParam = crearTarjetaParametros();
+  const info = h('div', { class: 'fc-cic-info' }, tCiclo.el, fases.el, tParam.el);
 
-  // ---- gráfica / panel de fin ----
-  const GX = 33, GY = 804, GW = 1129, GH = 1598 - 804;
-  const grafica = crearGraficaCiclo({ ancho: GW, alto: GH, alPantallaCompleta: () => abrirPantallaCompleta() });
-  Object.assign(grafica.el.style, { left: `${GX}px`, top: `${GY}px` });
+  // ---- gráfica / panel de fin (misma ranura) ----
+  const grafica = crearGraficaCiclo({ alPantallaCompleta: () => abrirPantallaCompleta() });
   let vistaGrafica = false, verObservaciones = false;
-  const panelFin = crearPanelFinCiclo({ ancho: GW, alto: GH, alVerGrafica: () => {
+  const panelFin = crearPanelFinCiclo({ alVerGrafica: () => {
     if (cargaNoEsteril) { vistaGrafica = true; regreso.reiniciar(); } else verObservaciones = false;
     pintar(sim.estado);
   } });
-  Object.assign(panelFin.el.style, { left: `${GX}px`, top: `${GY}px` });
   panelFin.el.classList.add('oculto');
-  m.append(grafica.el, panelFin.el);
 
   // tarjeta de seguridad superpuesta (paro y confirmación: grupo emergencia)
   const seguridad = crearSeccionEstadoSeguro({ grupo: 'emergencia' });
-  const tarjetaSeg = caja('div', GX + (GW - 960) / 2, GY + 170, 960, null, 'fc-tarjeta-seguridad oculto');
-  tarjetaSeg.append(seguridad.el);
-  m.append(tarjetaSeg);
+  const tarjetaSeg = h('div', { class: 'fc-tarjeta-seguridad desplazable oculto' }, seguridad.el);
+  const ranuraGraf = h('div', { class: 'fc-cic-graf' }, grafica.el, panelFin.el, tarjetaSeg);
 
-  // píldora de fin de ciclo
-  const pildora = h('button', { class: 'fc-pildora oculto' }, h('i'), h('span'));
-  pildora.style.top = `${GY + 58 - 29}px`;
+  // píldora de fin de ciclo (en la cabecera de la gráfica, a la izquierda de «Tiempos»)
+  const txtPildora = h('span');
+  const pildora = h('button', { class: 'fc-pildora oculto' }, h('i'), txtPildora);
   pildora.addEventListener('click', () => {
     if (cargaNoEsteril) vistaGrafica = false; else verObservaciones = true;
     panelFin.volverAlPanel();
     pintar(sim.estado);
   });
-  m.append(pildora);
+  grafica.extra.append(pildora);
 
   // relojes y progreso
-  const reloj = txt('', { cx: 426.5, bl: 1656, tam: 48, peso: 700, familia: 'num', color: 'var(--c-texto-reloj)' });
-  const rotReloj = txt(t('ciclo.tiempo_transcurrido'), { cx: 426.5, bl: 1681, tam: 19, color: 'var(--c-rotulo-reloj)' });
-  const progreso = txt('', { cx: 960, bl: 1656, tam: 40, peso: 700, familia: 'num', color: 'var(--c-texto-reloj)', ancho: 440 });
-  const rotProg = txt(t('progreso_fase.rotulo'), { cx: 960, bl: 1681, tam: 19, color: 'var(--c-rotulo-reloj)' });
-  const pista = caja('div', 39, 1691, 1157 - 39, 32, 'fc-pista-progreso');
+  const reloj = h('div', { class: 'fc-reloj-valor fc-encaja' });
+  const progreso = h('div', { class: 'fc-prog-valor fc-encaja' });
   const relleno = h('div', { class: 'fc-relleno-progreso' });
-  pista.append(relleno);
-  m.append(reloj, rotReloj, progreso, rotProg, pista);
+  const tiempos = h('div', { class: 'fc-cic-tiempos' },
+    h('div', { class: 'fc-cic-reloj' }, reloj, h('div', { class: 'fc-reloj-rot', text: t('ciclo.tiempo_transcurrido') })),
+    h('div', { class: 'fc-cic-prog' }, progreso, h('div', { class: 'fc-reloj-rot', text: t('progreso_fase.rotulo') })),
+    h('div', { class: 'fc-pista-progreso' }, relleno));
 
   // ---- barra inferior ----
   const barra = crearBarraInferior({ avatarEn: 'centro', alEquipo: () => abrirPanelEquipo({ permiteApagar: false }),
     alAvatar: () => abrirConfiguracion() });
-  m.append(barra.el);
-  const xDer = barra.mx(800), anchoDer = 1159 - xDer;
-  // botón de la tirilla (agregado de la demo)
-  const bTirilla = h('button', { class: 'fc-boton-tirilla' }, mascara('assets/iconos/mono/impresion.svg', 34, 'currentColor'),
-    h('span', { text: loc({ es: 'Tirilla', en: 'Ticket' }) }));
+  // botón de la tirilla (agregado de la demo), a la izquierda del avatar
+  const bTirilla = h('button', { class: 'fc-boton-tirilla', 'aria-label': loc({ es: 'Tirilla', en: 'Ticket' }) },
+    mascara('assets/iconos/mono/impresion.svg', null, 'currentColor'), h('span', { text: loc({ es: 'Tirilla', en: 'Ticket' }) }));
   bTirilla.addEventListener('click', () => { const c = sim.estado.ciclo; router.push('tirilla', { cicloId: c?.id ?? null }); });
-  barra.celdaCentro.append(bTirilla);
+  barra.celdaCentro.prepend(bTirilla);
 
-  const desl = crearDeslizador({ variante: 'cancelar', ancho: 235, alto: 88, texto: t('ciclo.cancelar'),
+  const desl = crearDeslizador({ variante: 'cancelar', texto: t('ciclo.cancelar'),
     textoCompletado: t('ciclo.cancelando'), dosLineas: true,
-    manija: h('img', { src: 'assets/iconos/color/detener.svg', alt: '', draggable: 'false', style: { width: `${88 / 60 * 54 * 0.82}px` } }),
+    manija: h('img', { class: 'fc-manija-detener', src: 'assets/iconos/color/detener.svg', alt: '', draggable: 'false' }),
     alCompletar: () => {
       if (terminado) return;
       const r = sim.cancelarCiclo(usuarioActual()?.nombre ?? null);
       if (r) avisoComando(t('ciclo.cancelar_error'));
     } });
-  Object.assign(desl.el.style, { position: 'absolute', left: `${barra.mx(846 - 34) - xDer}px`, top: '22px' });
-  const bConfirmar = caja('button', barra.mx(846 - 34) - xDer, 22, 235, 88, 'fc-boton-confirmar oculto');
-  const aro = caja('span', 894 - 846 - 32.5, 1812 - 1768 - 32.5, 65, 65, 'fc-bc-aro');
-  aro.append(mascara('assets/iconos/mono/confirmar.svg', 48, 'var(--c-texto-sobre-accion)'));
-  bConfirmar.append(aro, txt(t('ciclo.confirmar'), { lx: 941 - 846, bl: 1816 - 1768, tam: 13, peso: 500, color: 'var(--c-texto-sobre-accion)' }));
+  const bConfirmar = h('button', { class: 'fc-boton-confirmar oculto' },
+    h('span', { class: 'fc-bc-aro' }, mascara('assets/iconos/mono/confirmar.svg', null, 'var(--c-texto-sobre-accion)')),
+    h('span', { class: 'fc-bc-texto', text: t('ciclo.confirmar') }));
   bConfirmar.addEventListener('click', () => abrirConfirmar());
-  const indicador = caja('div', 12, 14, anchoDer - 24, 100, 'fc-indicador-entrega oculto');
   const txtIndicador = h('span');
-  indicador.append(txtIndicador);
-  barra.celdaDerecha.append(desl.el, bConfirmar, indicador);
+  const indicador = h('div', { class: 'fc-indicador-entrega oculto' }, txtIndicador);
+  barra.celdaDerecha.append(h('div', { class: 'fc-ranura-der' }, desl.el, bConfirmar), indicador);
+
+  const principal = h('div', { class: 'fc-tarjeta-principal' }, info, ranuraGraf, tiempos);
+  const raiz = h('div', { class: 'pantalla fc-pantalla fc-ciclo' },
+    crearFondo(), enc.el, h('main', { class: 'fc-cuerpo' }, principal), barra.el);
+
+  // Reencaje de textos al cambiar de tamaño (giro incluido): mismos nodos.
+  const equipo = barra.el.querySelector('.fc-celda-equipo');
+  const ajustar = () => {
+    tParam.ajustar();
+    encajarTodo(raiz);
+    tCiclo.ajustar();
+    equipo.classList.remove('compacta');
+    const tx = equipo.querySelector('.fc-bi-textos');
+    if (tx.scrollWidth > tx.clientWidth + 1) equipo.classList.add('compacta');
+  };
+  quitar.push(observarTamano(raiz, ajustar));
+  // las medidas de texto cambian cuando termina de cargar Montserrat
+  const alCargarFuente = () => requestAnimationFrame(ajustar);
+  document.fonts?.load?.('600 12px Montserrat').then(alCargarFuente, () => {});
+  document.fonts?.addEventListener?.('loadingdone', alCargarFuente);
+  quitar.push(() => document.fonts?.removeEventListener?.('loadingdone', alCargarFuente));
 
   // ---- pantalla completa de la gráfica ----
   let capaCompleta = null, graficaCompleta = null;
   function abrirPantallaCompleta() {
     if (capaCompleta) return;
-    graficaCompleta = crearGraficaCiclo({ ancho: 1129, alto: 1917 - 80, pantallaCompleta: true, alCerrar: cerrarPantallaCompleta });
-    Object.assign(graficaCompleta.el.style, { left: '33px', top: '40px' });
-    const mm = h('div', { class: 'fc-mockup' }, graficaCompleta.el);
-    capaCompleta = h('div', { class: 'fc-capa-completa' }, crearFondo(), mm);
+    graficaCompleta = crearGraficaCiclo({ pantallaCompleta: true, alCerrar: cerrarPantallaCompleta });
+    capaCompleta = h('div', { class: 'fc-capa-completa' }, crearFondo(), graficaCompleta.el);
     raiz.append(capaCompleta);
+    raiz.classList.add('con-completa');
+    const c = sim.estado.ciclo;
+    if (c) graficaCompleta.fijar({ serie: c.serie || [], tiempos: c.fases || [], tiempoActualS: c.transcurridoS });
     pintar(sim.estado);
   }
   function cerrarPantallaCompleta() {
     graficaCompleta?.destruir(); capaCompleta?.remove(); capaCompleta = null; graficaCompleta = null;
+    raiz.classList.remove('con-completa');
   }
 
   // ---- avisos y modales ----
@@ -257,11 +268,7 @@ export function crear() {
       pildora.classList.toggle('obs', !cargaNoEsteril);
       const txtP = cargaNoEsteril ? t('ciclo.pildora_alarmas', { n: Math.max(1, fin.cantidad || 1), s: dos(regreso.restante) })
         : t('ciclo.pildora_observaciones', { n: fin.cantidad || 0 });
-      const sp = pildora.lastChild;
-      if (sp.textContent !== txtP) sp.textContent = txtP;
-      const w = medir(txtP, 22, 600) + 14 + 12 + 48;
-      pildora.style.width = `${w}px`;
-      pildora.style.left = `${GX + 856 - 16 - w}px`;
+      if (txtPildora.textContent !== txtP) txtPildora.textContent = txtP;
     }
 
     // relojes y progreso
@@ -269,7 +276,8 @@ export function crear() {
     fijarTexto(progreso, vigente && !terminado ? textoProgreso(c.detalleFase) : t('sistema.sin_lectura'));
     const tt = c.transcurridoS, rr = c.restanteS;
     const frac = tt != null && rr != null && tt + rr > 0 ? Math.max(0, Math.min(1, tt / (tt + rr))) : (resultado === 'exitoso' ? 1 : 0);
-    relleno.style.width = frac > 0 ? `${Math.max(32, 1118 * frac)}px` : '0';
+    relleno.style.width = `${(frac * 100).toFixed(2)}%`;
+    relleno.classList.toggle('con', frac > 0);
 
     // cancelar / indicador / confirmar
     const entrega = c.entrega || {};
@@ -293,7 +301,7 @@ export function crear() {
 
   return {
     el: raiz,
-    alMostrar() { fases.fijarVisible(true); pintar(sim.estado); },
+    alMostrar() { fases.fijarVisible(true); pintar(sim.estado); requestAnimationFrame(ajustar); },
     alOcultar() { fases.fijarVisible(false); },
     destruir() {
       quitar.forEach((q) => q()); enc.destruir(); fases.destruir(); grafica.destruir(); desl.destruir();

@@ -1,7 +1,7 @@
 // GENERADO por herramientas/generar_sw.py — no editar a mano.
 // Service worker cache-first: precachea todos los archivos al instalar; la demo funciona
 // completa sin red después de abrirla una vez con internet.
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const CACHE = 'autoclave-demo-' + VERSION;
 const ARCHIVOS = [
   './',
@@ -147,8 +147,9 @@ const ARCHIVOS = [
   './js/app.js',
   './js/core/almacen.js',
   './js/core/capas.js',
+  './js/core/compat.js',
+  './js/core/disposicion.js',
   './js/core/dom.js',
-  './js/core/escala.js',
   './js/core/eventos.js',
   './js/core/i18n.js',
   './js/core/router.js',

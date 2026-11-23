@@ -5,7 +5,6 @@
 import { h } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { abrirModal } from '../../core/capas.js';
-import { medir } from './_ciclo_util.js';
 
 /** abrirModalOperador({operadores:[{id, nombre}], alAceptar(operador), alCancelar}) -> { cerrar() } */
 export function abrirModalOperador({ operadores = [], alAceptar = null, alCancelar = null } = {}) {
@@ -13,11 +12,8 @@ export function abrirModalOperador({ operadores = [], alAceptar = null, alCancel
   let accion = 'cancelar';
   const nota = h('div', { class: 'fc-mo-nota oculto', text: t('operador_ciclo.err_requerido') });
   const lista = h('div', { class: 'fc-mo-lista desplazable' });
-  const ancho = 1200 - 160, util = ancho - 96 - 40;
-  const aV = Math.min(Math.max(340, medir(t('operador_ciclo.cancelar'), 26, 600) + 32), util / 2);
-  const aA = Math.min(Math.max(340, medir(t('operador_ciclo.iniciar'), 26, 600) + 32), util - aV);
-  const bV = h('button', { class: 'fc-mc-volver', style: { width: `${aV}px` } }, h('span', { text: t('operador_ciclo.cancelar') }));
-  const bA = h('button', { class: 'fc-mc-accion', style: { width: `${aA}px`, background: 'var(--c-accion-primario)', color: 'var(--c-texto-sobre-accion)' } },
+  const bV = h('button', { class: 'fc-mc-volver' }, h('span', { text: t('operador_ciclo.cancelar') }));
+  const bA = h('button', { class: 'fc-mc-accion', style: { background: 'var(--c-accion-primario)', color: 'var(--c-texto-sobre-accion)' } },
     h('span', { text: t('operador_ciclo.iniciar') }));
   const pintar = () => {
     lista.replaceChildren(...operadores.map((op) => {
@@ -28,7 +24,7 @@ export function abrirModalOperador({ operadores = [], alAceptar = null, alCancel
     bA.classList.toggle('inactivo', !marcado);
   };
   pintar();
-  const tarjeta = h('div', { class: 'fc-mc-tarjeta fc-mo-tarjeta fc-entrada', style: { width: `${ancho}px` } },
+  const tarjeta = h('div', { class: 'fc-mc-tarjeta fc-mo-tarjeta fc-entrada' },
     h('div', { class: 'fc-mc-titulo', text: t('operador_ciclo.titulo') }), h('div', { class: 'fc-mc-linea' }),
     h('div', { class: 'fc-mo-cuerpo', text: t('operador_ciclo.cuerpo') }), nota, lista,
     h('div', { class: 'fc-mc-botones' }, bV, bA));

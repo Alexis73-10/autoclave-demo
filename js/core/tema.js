@@ -7,8 +7,10 @@ aplicar();
 
 function aplicar() {
   document.documentElement.dataset.tema = vigente;
+  // B6: la barra de estado (Android) toma el color del borde superior del fondo real
+  // (--color-barra de base.css: #213F68 en claro, #070B10 en oscuro).
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = vigente === 'oscuro' ? '#1A3150' : '#2C4B70';
+  if (meta) meta.content = vigente === 'oscuro' ? '#070B10' : '#213F68';
 }
 
 export function tema() { return vigente; }

@@ -1,32 +1,34 @@
 // Ventana flotante del Menú y Reportes (misma forma que Componentes/VentanaFlotante.qml): velo, tarjeta
-// de radio 26 a 34 px de cada borde, título 32 Bold (línea base 78), botón cerrar de 88, línea en y 124
-// y zona de contenido debajo (margen 48 y 36 abajo).
+// redondeada casi a pantalla completa, título en negrita, botón cerrar (aro con X), línea divisoria y
+// zona de contenido debajo. Tamaño relativo a la ventana; la zona es una columna flex (el contenido
+// largo se desplaza dentro con .desplazable).
 import { h } from '../../core/dom.js';
 import { abrirModal } from '../../core/capas.js';
-import { pos, texto } from './menu_util.js';
+
+/** Botón cerrar (aro con X) de las ventanas del frente. */
+export function botonCerrar(alPulsar, etiqueta = 'Cerrar') {
+  const b = h('button', { class: 'vm-cerrar', 'aria-label': etiqueta }, h('span', { class: 'vm-aro' }, h('span', { class: 'vm-x a' }), h('span', { class: 'vm-x b' })));
+  b.addEventListener('click', () => alPulsar?.());
+  return b;
+}
 
 /**
  * abrirVentanaMenu({titulo, altoTarjeta=1500, contenido (nodo | (zona, api) => nodo|void), alCerrar})
- *   -> {el, zona, ancho (de la zona), alto (de la zona), cerrar(), fijarTitulo(t)}
+ *   -> {el, zona, ancho, alto (de la zona, px reales al abrir), cerrar(), fijarTitulo(t)}
+ * altoTarjeta (px de diseño del QML) solo decide si la ventana es alta (>= 1000: llena la altura
+ * disponible) o se ajusta a su contenido.
  */
 export function abrirVentanaMenu({ titulo = '', altoTarjeta = 1500, contenido = null, alCerrar = null } = {}) {
-  const alto = Math.min(altoTarjeta, 1920 - 160);
-  const ancho = 1200 - 68;
-  const tit = texto(titulo, { x: 48, bl: 78, tam: 32, peso: 700, color: 'var(--c-texto-primario)' });
-  tit.style.width = `${ancho - 48 - 88 - 28 - 24}px`;
-  const zona = pos(h('div', { class: 'vm-zona' }), 48, 150, ancho - 96, alto - 150 - 36);
-  const cerrarBtn = pos(h('button', { class: 'vm-cerrar', 'aria-label': 'Cerrar' },
-    h('span', { class: 'vm-aro' }), h('span', { class: 'vm-x a' }), h('span', { class: 'vm-x b' })), ancho - 88 - 28, 24, 88, 88);
-  const tarjeta = pos(h('div', { class: 'vm-tarjeta' }, tit, cerrarBtn,
-    pos(h('div', { class: 'vm-linea' }), 48, 124, ancho - 96, 2), zona), 34, (1920 - alto) / 2, ancho, alto);
-  const raiz = pos(h('div', { class: 'vm-raiz' }, tarjeta), 0, 0, 1200, 1920);
-  raiz.style.position = 'relative';
+  const tit = h('div', { class: 'vm-titulo', text: titulo });
+  const zona = h('div', { class: 'vm-zona' });
   let cerrarModal = null;
-  const api = { el: tarjeta, zona, ancho: zona.clientWidth || ancho - 96, alto: alto - 150 - 36,
-    cerrar: () => cerrarModal?.(), fijarTitulo: (x) => { tit.textContent = x; } };
-  raiz.addEventListener('pointerdown', (e) => { if (e.target === raiz) api.cerrar(); });
-  cerrarBtn.addEventListener('click', () => api.cerrar());
-  cerrarModal = abrirModal(raiz, { alCerrar });
+  const cerrar = botonCerrar(() => cerrarModal?.());
+  const tarjeta = h('div', { class: `vm-tarjeta${altoTarjeta >= 1000 ? ' alta' : ''}` },
+    h('div', { class: 'vm-cab' }, tit, cerrar), h('div', { class: 'vm-linea' }), zona);
+  const api = { el: tarjeta, zona, ancho: 0, alto: 0, cerrar: () => cerrarModal?.(), fijarTitulo: (x) => { tit.textContent = x; } };
+  cerrarModal = abrirModal(tarjeta, { alCerrar, cerrarAlTocarVelo: true });
+  api.ancho = zona.clientWidth;
+  api.alto = zona.clientHeight;
   if (typeof contenido === 'function') { const n = contenido(zona, api); if (n) zona.append(n); }
   else if (contenido) zona.append(contenido);
   return api;

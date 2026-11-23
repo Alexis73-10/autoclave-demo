@@ -40,17 +40,18 @@ export function crear(params = {}) {
   const limpiezas = [];
 
   // ---- Encabezado (EncabezadoMenu: logo, reloj/fecha, campana con insignia, engranaje) ----
+  // Composición fluida: logo a la izquierda, hora centrada y campana/engranaje a la derecha.
   const reloj = h('div', { class: 'op-reloj' });
   const fecha = h('div', { class: 'op-fecha' });
   const insignia = h('span', { class: 'op-insignia' });
   const campana = h('button', { class: 'op-campana', type: 'button', 'aria-label': t('notificaciones.titulo'), onclick: abrirNotificaciones },
-    iconoMono('campana', { tam: 57, color: 'var(--c-texto-sobre-accion)' }), insignia);
-  const engranaje = h('button', { class: 'op-engranaje', type: 'button', onclick: irAMenu },
-    iconoMono('engranaje', { tam: 58, color: 'var(--c-texto-sobre-accion)' }));
-  // Panel oculto de la demo: pulsación larga de 3 s sobre el logo (zona táctil encima del <img>).
-  const zonaLogo = h('div', { class: 'op-logo-zona', style: { position: 'absolute', left: '60px', top: '40px', width: '293px', height: '100px' } });
+    iconoMono('campana', { tam: null, clase: 'op-ico-barra', color: 'var(--c-texto-sobre-accion)' }), insignia);
+  const engranaje = h('button', { class: 'op-engranaje', type: 'button', 'aria-label': t('opciones.titulo'), onclick: irAMenu },
+    iconoMono('engranaje', { tam: null, clase: 'op-ico-barra', color: 'var(--c-texto-sobre-accion)' }));
+  // Panel oculto de la demo: pulsación larga de 3 s sobre el logo (la zona envuelve al <img>).
+  const zonaLogo = h('div', { class: 'op-logo-zona' }, h('img', { class: 'op-logo', src: 'assets/logo/logo-especifika-blanco.svg', alt: '' }));
   const encabezado = h('div', { class: 'op-encabezado' },
-    h('img', { class: 'op-logo', src: 'assets/logo/logo-especifika-blanco.svg', alt: '' }), reloj, fecha, campana, engranaje, zonaLogo);
+    zonaLogo, h('div', { class: 'op-hora' }, reloj, fecha), h('div', { class: 'op-iconos' }, campana, engranaje));
   const quitarPanelDemo = instalarPanelDemo(zonaLogo);
 
   function pintarReloj() {
@@ -75,15 +76,32 @@ export function crear(params = {}) {
     h('i'), h('i'), h('i'));
 
   // ---- Riel / cajón ----
-  const riel = h('div', { class: 'op-riel' });
+  // Vertical: riel de iconos (oculto en celular) y cajón con la hamburguesa, como el real.
+  // Horizontal: el mismo riel, siempre abierto como menú lateral con iconos y nombres (solo CSS).
+  const riel = h('div', { class: 'op-riel desplazable' });
   const velo = h('div', { class: 'op-velo', onclick: () => alternarCajon(false) });
   function pintarRiel() {
+    const desp = riel.scrollTop;
     riel.replaceChildren(...visibles.map((s) => h('button', { class: `op-riel-item${s.clave === actual ? ' activa' : ''}`, type: 'button',
+      'aria-current': s.clave === actual ? 'page' : null, 'aria-label': t(`opciones.secciones.${s.clave}`),
       onclick: () => elegirSeccion(s.clave) },
-      iconoMono(s.icono, { tam: 54, color: s.clave === actual ? 'var(--c-accion-primario)' : 'var(--c-texto-primario)' }),
+      iconoMono(s.icono, { tam: null, clase: 'op-riel-ico', color: s.clave === actual ? 'var(--c-accion-primario)' : 'var(--c-texto-primario)' }),
       h('span', { class: 'op-riel-texto', text: t(`opciones.secciones.${s.clave}`) }))));
     riel.classList.toggle('abierto', cajonAbierto);
     velo.classList.toggle('visible', cajonAbierto);
+    // Con el cajón abierto, el contenido queda tapado por el velo (como bajo un modal).
+    if (cajonAbierto) contenido.dataset.solapePermitido = 'tapado por el cajón'; else delete contenido.dataset.solapePermitido;
+    riel.scrollTop = desp;
+  }
+  // Deja visible la sección activa dentro del riel (solo mueve el riel, nunca la página).
+  function verActiva() {
+    requestAnimationFrame(() => {
+      const it = riel.querySelector('.activa');
+      if (!it) return;
+      const arriba = it.offsetTop, abajo = arriba + it.offsetHeight;
+      if (arriba < riel.scrollTop) riel.scrollTop = arriba;
+      else if (abajo > riel.scrollTop + riel.clientHeight) riel.scrollTop = abajo - riel.clientHeight;
+    });
   }
   function alternarCajon(v) { cajonAbierto = v ?? !cajonAbierto; pintarRiel(); }
 
@@ -131,14 +149,14 @@ export function crear(params = {}) {
       bitacora: (evento, datos) => registrar(evento, { usuario: usuarioActual()?.usuario ?? '', ...datos }),
     };
     instancia = mod.crear(ctx);
-    instancia.el.classList.add('op-seccion');
+    instancia.el.classList.add('op-seccion', 'desplazable');
     area.append(instancia.el);
   }
 
   // ---- Barra inferior ----
   function celda(clase, icono, fn) {
     return h('button', { class: `op-celda ${clase}`, type: 'button', onclick: fn },
-      iconoMono(icono, { tam: 70, color: 'var(--c-icono-barra-menu)' }));
+      iconoMono(icono, { tam: null, clase: 'op-ico-pie', color: 'var(--c-icono-barra-menu)' }));
   }
   const barra = h('div', { class: 'op-barra' },
     celda('atras', 'flecha_atras', () => {
@@ -159,11 +177,15 @@ export function crear(params = {}) {
 
   const el = h('div', { class: 'op' },
     encabezado,
-    h('div', { class: 'op-tarjeta' }, hamburguesa, titulo, h('div', { class: 'op-divisor' }), contenido, velo, riel),
+    h('div', { class: 'op-tarjeta' }, hamburguesa, titulo, contenido, velo, h('div', { class: 'op-riel-hueco' }, riel)),
     barra);
 
   limpiezas.push(on('sim', () => pintarBanda()));
+  // Rotación en vivo (B5): la pantalla no se recrea; en horizontal el menú lateral siempre está,
+  // así que el cajón de la vertical se cierra al girar.
+  limpiezas.push(on('disposicion', (d) => { if (d.orient === 'h' && cajonAbierto) alternarCajon(false); verActiva(); }));
   pintarRiel();
+  verActiva();
   montar();
 
   return {

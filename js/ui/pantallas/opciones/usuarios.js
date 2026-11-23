@@ -85,7 +85,7 @@ export function crear(ctx) {
       } });
     } });
     const no = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: () => cerrar() });
-    cerrar = abrirModal(h('div', { class: 'op-modal ancho' }, h('div', { class: 'op-modal-titulo', text: t('usuarios_cuenta.elegir_rol', { usuario: u.usuario, rol: rolVisible(u.rol) }) }),
+    cerrar = abrirModal(h('div', { class: 'op-modal ancho desplazable' }, h('div', { class: 'op-modal-titulo', text: t('usuarios_cuenta.elegir_rol', { usuario: u.usuario, rol: rolVisible(u.rol) }) }),
       dd.el, h('div', { class: 'op-modal-botones' }, no.el, ok.el)), { cerrarAlTocarVelo: true });
   }
 
@@ -128,7 +128,6 @@ export function crear(ctx) {
   function pintar() {
     tabs.actualizar({ valor: pestana });
     if (pestana === 'usuarios') pintarUsuarios(); else pintarOperadores();
-    acciones.style.display = pestana === 'usuarios' || true ? '' : 'none';
     pie.classList.toggle('uno', pestana !== 'usuarios');
     acciones.classList.toggle('uno', pestana !== 'usuarios');
   }

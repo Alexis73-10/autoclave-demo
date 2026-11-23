@@ -10,14 +10,14 @@ export function crearDesplegable(op = {}) {
   const rotulo = h('div', { class: 'dd-rotulo' });
   const texto = h('div', { class: 'dd-texto' });
   const chev = h('span', { class: 'dd-chev' });
-  const el = h('div', { class: 'dd', onpointerup: () => abrir() }, h('div', { class: 'dd-col' }, rotulo, texto), chev);
+  const el = h('div', { class: 'dd', role: 'button', tabindex: '0', onclick: () => abrir() }, h('div', { class: 'dd-col' }, rotulo, texto), chev);
 
   function vigente() { return o.opciones.find((x) => x.valor === o.valor) ?? null; }
   function pintar() {
     const v = vigente();
     rotulo.textContent = o.rotulo; rotulo.style.display = o.rotulo ? '' : 'none';
     texto.textContent = v ? v.texto + (v.aviso ? ` ${v.aviso}` : '') : o.textoSinValor;
-    chev.replaceChildren(iconoMono(cierra ? 'chevron_arriba' : 'chevron_abajo', { tam: 36, color: 'var(--c-texto-negro)' }));
+    chev.replaceChildren(iconoMono(cierra ? 'chevron_arriba' : 'chevron_abajo', { tam: null, clase: 'dd-chev-ico', color: 'var(--c-texto-negro)' }));
     el.classList.toggle('inactivo', !o.habilitado);
     el.classList.toggle('abierto', !!cierra);
     el.classList.toggle('alto', !!o.rotulo);

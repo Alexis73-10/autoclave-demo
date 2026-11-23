@@ -77,7 +77,7 @@ function manejo(ctx) {
     const dd = crearDesplegable({ opciones: todos().map((x) => ({ valor: x.id, texto: `${pad2(x.numero)} ${x.nombre}` })), valor: baseId, tituloLista: t('manejo_ciclos.crear_titulo'), alElegir: (v) => { baseId = v; dd.actualizar({ valor: v }); } });
     const sig = crearBotonFormulario({ texto: t('acciones.confirmar'), primario: true, alPulsar: () => { cerrar(); nombrar(todos().find((x) => x.id === baseId), ''); } });
     const no = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: () => cerrar() });
-    cerrar = abrirModal(h('div', { class: 'op-modal ancho' }, h('div', { class: 'op-modal-titulo', text: t('manejo_ciclos.crear_titulo') }), h('div', { class: 'op-modal-texto', text: t('manejo_ciclos.crear_explicacion') }),
+    cerrar = abrirModal(h('div', { class: 'op-modal ancho desplazable' }, h('div', { class: 'op-modal-titulo', text: t('manejo_ciclos.crear_titulo') }), h('div', { class: 'op-modal-texto', text: t('manejo_ciclos.crear_explicacion') }),
       dd.el, h('div', { class: 'op-modal-botones' }, no.el, sig.el)), { cerrarAlTocarVelo: true });
   }
   pintar();
@@ -128,21 +128,21 @@ function reasignacion(ctx) {
       } });
     };
     const paso3 = () => {   // contraseña
-      const campo = crearCampoFormulario({ etiqueta: t('reasignacion.clave_titulo', { usuario: ctx.nombreUsuario || ctx.usuario }), marcador: '••••', oculto: true, valor: '', alTocar: () => abrirAlfanumerico({ titulo: t('reasignacion.clave_titulo', { usuario: ctx.usuario }), valor: '', oculto: true, alEntregar: (v) => { clave = v; campo.actualizar({ valor: v }); } }) });
+      const campo = crearCampoFormulario({ etiqueta: t('reasignacion.clave_titulo', { usuario: ctx.nombreUsuario || ctx.usuario }), marcador: '••••', oculto: true, valor: '', alTocar: () => abrirAlfanumerico({ titulo: t('reasignacion.clave_titulo', { usuario: ctx.usuario }), valor: '', oculto: true, campo: campo.el, alEntregar: (v) => { clave = v; campo.actualizar({ valor: v }); } }) });
       let clave = '', cerrar;
       const ok = crearBotonFormulario({ texto: t('reasignacion.continuar'), primario: true, alPulsar: () => { if (!clave) { campo.actualizar({ error: t('validacion.obligatorio') }); return; } cerrar(); paso4(); } });
       const no = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: () => cerrar() });
-      cerrar = abrirModal(h('div', { class: 'op-modal ancho' }, h('div', { class: 'op-modal-titulo', text: t('reasignacion.clave_titulo', { usuario: ctx.nombreUsuario || ctx.usuario }) }), campo.el,
+      cerrar = abrirModal(h('div', { class: 'op-modal ancho desplazable' }, h('div', { class: 'op-modal-titulo', text: t('reasignacion.clave_titulo', { usuario: ctx.nombreUsuario || ctx.usuario }) }), campo.el,
         h('div', { class: 'op-nota', text: L({ es: 'Demostración: escriba cualquier texto.', en: 'Demo: type any text.' }) }), h('div', { class: 'op-modal-botones' }, no.el, ok.el)), { cerrarAlTocarVelo: true });
     };
     const paso2 = () => {   // confirmación reforzada
       if (!criticas.length) { paso3(); return; }
       const f = criticas[0]; const nombre = t(`reasignacion.funcion_${f.k}`);
       let escrito = '', cerrar;
-      const campo = crearCampoFormulario({ etiqueta: t('reasignacion.escribir_nombre'), marcador: nombre, valor: '', alTocar: () => abrirAlfanumerico({ titulo: t('reasignacion.escribir_nombre'), valor: '', alEntregar: (v) => { escrito = v.trim(); campo.actualizar({ valor: v, error: '' }); } }) });
+      const campo = crearCampoFormulario({ etiqueta: t('reasignacion.escribir_nombre'), marcador: nombre, valor: '', alTocar: () => abrirAlfanumerico({ titulo: t('reasignacion.escribir_nombre'), valor: '', campo: campo.el, alEntregar: (v) => { escrito = v.trim(); campo.actualizar({ valor: v, error: '' }); } }) });
       const ok = crearBotonFormulario({ texto: t('reasignacion.continuar'), primario: true, alPulsar: () => { if (escrito.toLowerCase() !== nombre.toLowerCase()) { campo.actualizar({ error: t('reasignacion.escribir_nombre') }); return; } cerrar(); paso3(); } });
       const no = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: () => cerrar() });
-      cerrar = abrirModal(h('div', { class: 'op-modal ancho' }, h('div', { class: 'op-modal-titulo', text: t('reasignacion.reforzada_titulo') }), h('div', { class: 'op-modal-texto', text: t('reasignacion.reforzada_texto', { funcion: nombre }) }),
+      cerrar = abrirModal(h('div', { class: 'op-modal ancho desplazable' }, h('div', { class: 'op-modal-titulo', text: t('reasignacion.reforzada_titulo') }), h('div', { class: 'op-modal-texto', text: t('reasignacion.reforzada_texto', { funcion: nombre }) }),
         campo.el, h('div', { class: 'op-modal-botones' }, no.el, ok.el)), { cerrarAlTocarVelo: true });
     };
     abrirDialogoConfirmacion({ mensaje: `${t('reasignacion.alerta_titulo')}\n\n${t('reasignacion.alerta_texto', { n: c.length })}${criticas.length ? `\n${t('reasignacion.alerta_criticas', { lista: criticas.map((f) => t(`reasignacion.funcion_${f.k}`)).join(', ') })}` : ''}`,

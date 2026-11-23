@@ -163,7 +163,7 @@ export function crear(ctx) {
     function puntoUI(i, rotulo) {
       const realTxt = h('span', { class: 'op-cal-v', text: '—' });
       const equipoTxt = h('span', { class: 'op-cal-v', text: '—' });
-      const campo = h('button', { class: 'op-aj-campo', type: 'button', onclick: () => abrirNumerico({ titulo: t('io.ui.cal_real'), valor: reales[i] ?? 0, decimales: 1, min: -50, max: 1000, alConfirmar: (v) => { reales[i] = v; realTxt.textContent = num(v, 1); } }) },
+      const campo = h('button', { class: 'op-aj-campo', type: 'button', onclick: () => abrirNumerico({ titulo: t('io.ui.cal_real'), valor: reales[i] ?? 0, decimales: 1, campo, min: -50, max: 1000, alConfirmar: (v) => { reales[i] = v; realTxt.textContent = num(v, 1); } }) },
         h('span', { class: 'op-aj-campo-rotulo', text: t('io.ui.cal_real') }), realTxt);
       const cap = crearBotonFormulario({ texto: t('io.ui.cal_capturar'), alPulsar: () => {
         const v = sim.estado.sensores?.[k];
@@ -196,7 +196,7 @@ export function crear(ctx) {
   const contenido = h('div', { class: 'op-es-contenido' });
 
   function pintar() {
-    if (vistaCal) { cuerpo.className = 'op-es'; pintarCalibracion(); return; }
+    if (vistaCal) { pintarCalibracion(); return; }
     tabs.actualizar({ valor: segmento });
     contenido.replaceChildren(segmento === 'entradas' ? pintarEntradas() : segmento === 'salidas' ? pintarSalidas()
       : segmento === 'temperatura' ? pintarSensores(TEMP, tempTxt) : pintarSensores(PRES, presTxt));

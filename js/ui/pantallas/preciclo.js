@@ -1,16 +1,19 @@
-// Preciclo (Pantallas/PantallaPreciclo.qml, vertical): encabezado, tarjeta de ciclo
-// (número, programa con selector, estado Listo / No preparado), tarjeta de
-// parámetros, tarjeta «ALARMAS Y AVISOS» (filas de seguridad + alarmas activas),
-// ABRIR/CERRAR PUERTA, Carga, deslizador INICIAR (o RECONOCER FALLA en FALLA) y
-// barra inferior (equipo, avatar). Coordenadas del mockup 1196x1917.
-import { h } from '../../core/dom.js';
+// Preciclo (Pantallas/PantallaPreciclo.qml): encabezado, tarjeta de ciclo (número,
+// programa con selector, estado Listo / No preparado), tarjeta de parámetros, tarjeta
+// «ALARMAS Y AVISOS» (filas de seguridad + alarmas activas), ABRIR/CERRAR PUERTA, Carga,
+// deslizador INICIAR (o RECONOCER FALLA en FALLA) y barra inferior (equipo, avatar).
+// Composición adaptable (v1.1): grid fluido. Vertical = orden del QML. Horizontal =
+// tarjeta y parámetros a la izquierda (desplazables si no caben), acciones siempre
+// visibles abajo a la izquierda y ALARMAS Y AVISOS a la derecha. La rotación solo cambia
+// el CSS (mismos nodos, sin recrear).
+import { h, observarTamano } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { on } from '../../core/eventos.js';
 import * as router from '../../core/router.js';
 import { haySesion, usuarioActual, operadores } from '../../core/sesion.js';
 import { sim } from '../../sim/motor.js';
 import { abrirConfiguracion } from '../../app.js';
-import { caja, txt, iconoPuerta, textosAlarma } from '../componentes/_ciclo_util.js';
+import { iconoPuerta, textosAlarma, encajarTodo, fijarTexto } from '../componentes/_ciclo_util.js';
 import { crearFondo, crearEncabezado, crearTarjetaCiclo, crearTarjetaParametros, crearBarraInferior,
   numeroSiguiente, instalarSonidos } from '../componentes/_comun_pantalla_ciclo.js';
 import { abrirPanelNotificaciones } from '../componentes/panel_notificaciones.js';
@@ -25,28 +28,20 @@ import { abrirVentanaCarga, resumenCarga } from '../componentes/ventana_carga.js
 export function crear() {
   instalarSonidos();
   const quitar = [];
-  const raiz = h('div', { class: 'fc-pantalla' });
-  const m = h('div', { class: 'fc-mockup' });
-  raiz.append(crearFondo(), m);
 
   const enc = crearEncabezado({ alCampana: () => abrirPanelNotificaciones(), alEngranaje: () => router.push('menu') });
-  m.append(enc.el);
-  m.append(caja('div', 19, 177, 1159, 1746 - 10 - 177, 'fc-tarjeta-principal'));
   const tCiclo = crearTarjetaCiclo({ alTocarPrograma: () => abrirSelectorPrograma() });
-  const tParam = crearTarjetaParametros({ dy: 0 });
-  m.append(tCiclo.el, tParam.el);
+  const tParam = crearTarjetaParametros();
+  const sup = h('div', { class: 'fc-pre-sup desplazable' }, tCiclo.el, tParam.el);
 
   // ---- tarjeta de alarmas y avisos ----
-  m.append(caja('div', 34, 655, 1130, 944, 'fc-tarjeta-alarmas'),
-    txt(t('ciclo.alarmas_titulo'), { lx: 81, bl: 717, tam: 27, peso: 700, color: 'var(--c-texto-titulo)' }),
-    caja('div', 81, 737, 1035, 2, '', { background: 'var(--c-linea-alarmas)' }));
   const avisoTexto = h('div', { class: 'fc-aviso-alarmas oculto' });
   const seguridad = crearSeccionEstadoSeguro({ grupo: '' });
   const lista = h('div', { class: 'fc-lista-alarmas desplazable' });
-  const zona = caja('div', 81, 739, 1035, 1598 - 739, 'fc-zona-alarmas');
-  zona.append(avisoTexto, seguridad.el, lista);
-  const vacio = txt(t('ciclo.sin_alarmas'), { cx: 598.5, bl: 1176, tam: 28, color: 'var(--c-texto-vacio)' });
-  m.append(zona, vacio);
+  const vacio = h('div', { class: 'fc-vacio-alarmas', text: t('ciclo.sin_alarmas') });
+  const zona = h('div', { class: 'fc-zona-alarmas' }, avisoTexto, seguridad.el, lista, vacio);
+  const tAlarmas = h('section', { class: 'fc-tarjeta-alarmas' },
+    h('div', { class: 'fc-ta-titulo', text: t('ciclo.alarmas_titulo') }), zona);
   let tAviso = 0;
   const mostrarAviso = (texto) => {
     avisoTexto.textContent = sim.ultimoRechazo?.texto || texto; avisoTexto.classList.remove('oculto');
@@ -55,11 +50,9 @@ export function crear() {
 
   // ---- botón ABRIR / CERRAR PUERTA ----
   const puerta = 1;
-  const bPuerta = caja('button', 41, 1615, 298, 110, 'fc-boton-accion puerta');
-  const circPuerta = caja('span', 64 - 41, 1629 - 1615, 84, 84, 'fc-ba-circulo');
+  const circPuerta = h('span', { class: 'fc-ba-circulo' });
   const txtPuerta = h('span', { class: 'fc-ba-texto' });
-  Object.assign(txtPuerta.style, { left: `${172 - 41}px`, top: `${1676 - 1615 - 0.858 * 17}px`, width: `${298 - (172 - 41) - 12}px` });
-  bPuerta.append(circPuerta, txtPuerta);
+  const bPuerta = h('button', { class: 'fc-boton-accion puerta' }, circPuerta, txtPuerta);
   let puertaAbierta = null;
   bPuerta.addEventListener('click', () => {
     const st = sim.estado.puertas?.[puerta];
@@ -69,20 +62,17 @@ export function crear() {
   });
 
   // ---- botón Carga ----
-  const bCarga = caja('button', 365, 1615, 790 - 365, 110, 'fc-boton-carga');
   const barras = h('span', { class: 'fc-carga-barras' }, [4, 2, 6, 2, 3, 6, 2, 4, 2, 5].map((w) => h('i', { style: { width: `${w}px` } })));
-  const resumen = h('span', { class: 'fc-carga-resumen' });
-  bCarga.append(barras, h('span', { class: 'fc-carga-col' },
+  const resumen = h('span', { class: 'fc-carga-resumen fc-encaja' });
+  const bCarga = h('button', { class: 'fc-boton-carga' }, barras, h('span', { class: 'fc-carga-col' },
     h('span', { class: 'fc-carga-titulo', text: t('registro_carga.boton').toUpperCase() }), resumen));
-  const pintarCarga = () => { resumen.textContent = resumenCarga(); };
+  const pintarCarga = () => { fijarTexto(resumen, resumenCarga()); };
   bCarga.addEventListener('click', () => abrirVentanaCarga({ alCerrar: pintarCarga }));
   pintarCarga();
 
-  // ---- deslizador INICIAR ----
-  const desl = crearDeslizador({ variante: 'inicio', ancho: 332, alto: 110, texto: t('modulos.iniciar_deslizar'),
+  // ---- deslizador INICIAR / RECONOCER FALLA (misma ranura) ----
+  const desl = crearDeslizador({ variante: 'inicio', texto: t('modulos.iniciar_deslizar'),
     textoCompletado: t('modulos.iniciando_deslizar'), manija: h('span', { class: 'fc-play' }), alCompletar: iniciar });
-  Object.assign(desl.el.style, { position: 'absolute', left: '815px', top: '1616px' });
-
   function iniciar() {
     const lanzar = (operador) => {
       const r = sim.iniciarCiclo({ operador });
@@ -93,21 +83,36 @@ export function crear() {
       abrirModalOperador({ operadores: ops, alAceptar: (op) => lanzar(op?.nombre) });
     } else lanzar(usuarioActual()?.nombre ?? null);
   }
-
-  // ---- RECONOCER FALLA ----
-  const bFalla = caja('button', 845, 1616, 302, 110, 'fc-boton-accion falla oculto');
-  const circFalla = caja('span', 866 - 845, 1629 - 1616, 84, 84, 'fc-ba-circulo');
-  circFalla.append(h('span', { class: 'fc-ba-excl', text: '!' }));
-  const txtFalla = h('span', { class: 'fc-ba-texto', text: t('modulos.reconocer_falla') });
-  Object.assign(txtFalla.style, { left: `${980 - 845}px`, top: `${1676 - 1616 - 0.858 * 17}px`, width: `${302 - (980 - 845) - 12}px` });
-  bFalla.append(circFalla, txtFalla);
+  const bFalla = h('button', { class: 'fc-boton-accion falla oculto' },
+    h('span', { class: 'fc-ba-circulo' }, h('span', { class: 'fc-ba-excl', text: '!' })),
+    h('span', { class: 'fc-ba-texto', text: t('modulos.reconocer_falla') }));
   bFalla.addEventListener('click', () => { const r = sim.resetFalla(); if (typeof r === 'string' && r) mostrarAviso(t(r)); });
-  m.append(bPuerta, bCarga, desl.el, bFalla);
+  const acciones = h('div', { class: 'fc-pre-acciones' }, bPuerta, bCarga, h('div', { class: 'fc-ranura-desl' }, desl.el, bFalla));
 
   // ---- barra inferior ----
   const barra = crearBarraInferior({ avatarEn: 'derecha', alEquipo: () => abrirPanelEquipo({ permiteApagar: true }),
     alAvatar: () => abrirConfiguracion() });
-  m.append(barra.el);
+
+  const principal = h('div', { class: 'fc-tarjeta-principal' }, sup, tAlarmas, acciones);
+  const raiz = h('div', { class: 'pantalla fc-pantalla fc-preciclo' },
+    crearFondo(), enc.el, h('main', { class: 'fc-cuerpo' }, principal), barra.el);
+
+  // Reencaje de textos al cambiar de tamaño (giro incluido): mismos nodos.
+  const equipo = barra.el.querySelector('.fc-celda-equipo');
+  const ajustar = () => {
+    tParam.ajustar();
+    encajarTodo(raiz);
+    tCiclo.ajustar();
+    equipo.classList.remove('compacta');
+    const tx = equipo.querySelector('.fc-bi-textos');
+    if (tx.scrollWidth > tx.clientWidth + 1) equipo.classList.add('compacta');
+  };
+  quitar.push(observarTamano(raiz, ajustar));
+  // las medidas de texto cambian cuando termina de cargar Montserrat
+  const alCargarFuente = () => requestAnimationFrame(ajustar);
+  document.fonts?.load?.('600 12px Montserrat').then(alCargarFuente, () => {});
+  document.fonts?.addEventListener?.('loadingdone', alCargarFuente);
+  quitar.push(() => document.fonts?.removeEventListener?.('loadingdone', alCargarFuente));
 
   // ---- actualización ----
   let firmaAlarmas = '';
@@ -123,7 +128,7 @@ export function crear() {
     tParam.fijar(prog, e.sensores, vigente);
 
     seguridad.actualizar(e);
-    seguridad.el.style.paddingBottom = seguridad.conteo() > 0 ? '12px' : '0';
+    seguridad.el.style.paddingBottom = seguridad.conteo() > 0 ? '0.75rem' : '0';
     const alarmas = e.alarmas || [];
     const firma = alarmas.map((a) => `${a.id}|${a.nivel}|${a.titulo}`).join(';');
     if (firma !== firmaAlarmas) {
@@ -138,7 +143,7 @@ export function crear() {
     if (abierta !== puertaAbierta) {
       puertaAbierta = abierta;
       txtPuerta.textContent = abierta ? t('ciclo.cerrar_puerta') : t('ciclo.abrir_puerta');
-      circPuerta.replaceChildren(iconoPuerta(puerta, abierta, 42, 'var(--c-abrir-puerta-texto)'));
+      circPuerta.replaceChildren(iconoPuerta(puerta, abierta, '1em', 'var(--c-abrir-puerta-texto)'));
     }
     bPuerta.disabled = !vigente;
     bPuerta.classList.toggle('inactivo', !vigente);
@@ -154,7 +159,7 @@ export function crear() {
 
   return {
     el: raiz,
-    alMostrar() { pintarCarga(); pintar(sim.estado); },
+    alMostrar() { pintarCarga(); pintar(sim.estado); requestAnimationFrame(ajustar); },
     destruir() { quitar.forEach((q) => q()); enc.destruir(); desl.destruir(); clearTimeout(tAviso); },
   };
 }

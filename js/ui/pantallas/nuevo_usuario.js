@@ -1,5 +1,7 @@
 // Pantalla Nuevo usuario (NuevoUsuario.qml): alta de un usuario de DEMOSTRACIÓN. No hay contraseña real:
 // se guarda nombre, usuario, rol y estado (js/core/sesion.js › guardarUsuarios).
+// Vertical: como el real (avatar a la izquierda y campos a la derecha; en celular, avatar arriba).
+// Horizontal: encabezado de la tarjeta y avatar a un lado, formulario desplazable al otro (solo CSS, B5).
 import { h, iconoMono } from '../../core/dom.js';
 import { t, hora as horaTxt } from '../../core/i18n.js';
 import { rol as rolActual, usuarioActual, usuarios, guardarUsuarios, PIN_DEMO } from '../../core/sesion.js';
@@ -21,7 +23,7 @@ export function crear() {
 
   const campo = (clave, etiqueta, marcador, maxLargo) => {
     const c = crearCampoFormulario({ etiqueta, marcador, valor: '',
-      alTocar: () => abrirAlfanumerico({ titulo: etiqueta, valor: datos[clave], maxLargo, alEntregar: (v) => { datos[clave] = v.trim(); c.actualizar({ valor: datos[clave], error: '' }); } }) });
+      alTocar: () => abrirAlfanumerico({ titulo: etiqueta, valor: datos[clave], maxLargo, campo: c.el, alEntregar: (v) => { datos[clave] = v.trim(); c.actualizar({ valor: datos[clave], error: '' }); } }) });
     return c;
   };
   const cNombre = campo('nombre', t('formulario.nombre_completo'), t('usuarios.marcador_nombre'), 60);
@@ -61,23 +63,27 @@ export function crear() {
 
   const guardarBtn = crearBotonFormulario({ texto: t('acciones.guardar_usuario'), primario: true, alPulsar: guardar });
   const cancelarBtn = crearBotonFormulario({ texto: t('acciones.cancelar'), alPulsar: salir });
+  const icoBarra = (nombre) => iconoMono(nombre, { tam: null, clase: 'op-ico-pie', color: 'var(--c-icono-barra-menu)' });
   const el = h('div', { class: 'op op-nu' },
-    h('div', { class: 'op-nu-barra' }, h('img', { class: 'op-nu-logo', src: 'assets/logo/logo-especifika-blanco.svg', alt: '' }), reloj, fecha),
-    h('div', { class: 'op-nu-tarjeta' },
-      h('button', { class: 'op-nu-volver', type: 'button', onclick: salir }, h('span', { class: 'op-chev-izq' })),
-      h('div', { class: 'op-nu-titulo', text: t('usuarios.titulo_nuevo') }),
-      h('div', { class: 'op-nu-avatar' }, iconoMono('usuario', { tam: 144, color: 'var(--c-texto-sobre-accion)' })),
-      h('div', { class: 'op-nu-campos' },
-        h('div', { class: 'op-nu-campo' }, cNombre.el),
-        h('div', { class: 'op-nu-campo' }, cUsuario.el),
-        h('div', { class: 'op-nu-campo rol' }, h('div', { class: 'cf-etiqueta', text: t('formulario.rol') }), h('div', { class: 'op-nu-rol' }, ddRol.el), rolError),
-        h('div', { class: 'op-nu-campo' }, estado.el),
-        h('div', { class: 'op-nota', text: L({ es: `Demostración: la contraseña de todas las cuentas es ${PIN_DEMO}.`, en: `Demo: every account password is ${PIN_DEMO}.` }) })),
-      h('div', { class: 'op-nu-botones' }, cancelarBtn.el, guardarBtn.el)),
+    h('div', { class: 'op-nu-barra' }, h('img', { class: 'op-nu-logo', src: 'assets/logo/logo-especifika-blanco.svg', alt: '' }),
+      h('div', { class: 'op-nu-hora' }, reloj, fecha)),
+    h('div', { class: 'op-nu-tarjeta desplazable' },
+      h('div', { class: 'op-nu-cab' },
+        h('button', { class: 'op-nu-volver', type: 'button', 'aria-label': t('menu.volver'), onclick: salir }, h('span', { class: 'op-chev-izq' })),
+        h('div', { class: 'op-nu-titulo', text: t('usuarios.titulo_nuevo') })),
+      h('div', { class: 'op-nu-ident' },
+        h('div', { class: 'op-nu-avatar' }, iconoMono('usuario', { tam: null, clase: 'op-nu-avatar-ico', color: 'var(--c-texto-sobre-accion)' }))),
+      h('div', { class: 'op-nu-form desplazable' },
+        h('div', { class: 'op-nu-campos' },
+          h('div', { class: 'op-nu-campo' }, cNombre.el),
+          h('div', { class: 'op-nu-campo' }, cUsuario.el),
+          h('div', { class: 'op-nu-campo rol' }, h('div', { class: 'cf-etiqueta', text: t('formulario.rol') }), h('div', { class: 'op-nu-rol' }, ddRol.el), rolError),
+          h('div', { class: 'op-nu-campo' }, estado.el),
+          h('div', { class: 'op-nota', text: L({ es: `Demostración: la contraseña de todas las cuentas es ${PIN_DEMO}.`, en: `Demo: every account password is ${PIN_DEMO}.` }) })),
+        h('div', { class: 'op-nu-botones' }, cancelarBtn.el, guardarBtn.el))),
     h('div', { class: 'op-barra nu' },
-      h('button', { class: 'op-celda mitad', type: 'button', onclick: salir }, iconoMono('flecha_atras', { tam: 70, color: 'var(--c-icono-barra-menu)' })),
-      h('i', { class: 'op-div medio' }),
-      h('button', { class: 'op-celda mitad der', type: 'button', onclick: async () => { const app = await import('../../app.js'); app.irAPrincipal(); } },
-        iconoMono('casa', { tam: 70, color: 'var(--c-icono-barra-menu)' }))));
+      h('button', { class: 'op-celda mitad', type: 'button', 'aria-label': t('menu.volver'), onclick: salir }, icoBarra('flecha_atras')),
+      h('i', { class: 'op-div' }),
+      h('button', { class: 'op-celda mitad', type: 'button', onclick: async () => { const app = await import('../../app.js'); app.irAPrincipal(); } }, icoBarra('casa'))));
   return { el, destruir() { clearInterval(id); } };
 }

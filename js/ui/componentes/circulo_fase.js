@@ -7,10 +7,13 @@
 // la superficie (tope 12) y burbujas en la última completada (tope 20); solo
 // círculos (divs redondos movidos con transform), sin canvas. La animación la mueve
 // barra_fases.js con un único requestAnimationFrame (paso(dt)).
+// Composición adaptable: el diámetro real lo fija barra_fases (fijarTamano(d), px); el
+// líquido (SVG con viewBox 85) y las partículas (capa de 85 escalada) conservan la
+// geometría del QML.
 //
 // crearCirculoFase({fase, tope = 0.90, indeterminado = 0.25})
 //   -> {el, aplicar(modo, {estado, fraccion}, retardoMs), paso(dt, ahora) -> bool (sigue animando),
-//       fijarVapor(bool), fijarBurbujas(bool), fijarVigente(bool), estado()}
+//       fijarVapor(bool), fijarBurbujas(bool), fijarVigente(bool), fijarTamano(d), estado()}
 import { h } from '../../core/dom.js';
 
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -38,7 +41,7 @@ export function crearCirculoFase({ fase = '', tope = 0.90, indeterminado = 0.25 
   const camino = svg.querySelector('path');
   const capaVapor = h('div', { class: 'fc-cf-particulas' });
   const icono = h('img', { class: 'fc-cf-icono', src: `assets/iconos/color/fase_${fase}.svg`, alt: '', draggable: 'false' });
-  const el = h('div', { class: 'fc-circulo-fase', dataset: { estado: 'pendiente' } }, svg, capaVapor, icono);
+  const el = h('div', { class: 'fc-circulo-fase', dataset: { estado: 'pendiente' }, 'data-solape-permitido': '' }, svg, capaVapor, icono);
 
   let estado = 'pendiente', fraccion = null, nivel = 0, vigente = true, visibleExt = true;
   let tween = null;          // {desde, hasta, t0, dur, ease, retardo}
@@ -192,6 +195,10 @@ export function crearCirculoFase({ fase = '', tope = 0.90, indeterminado = 0.25 
   return {
     el, aplicar, paso, terminar,
     fijarVapor(v) { vaporHab = !!v; },
+    fijarTamano(d) {
+      el.style.width = el.style.height = `${d}px`;
+      capaVapor.style.transform = `scale(${(d / W).toFixed(4)})`;
+    },
     fijarBurbujas(v) { burbHab = !!v; },
     fijarVisible(v) { visibleExt = !!v; if (!visibleExt) vaciar(); },
     fijarVigente(v) { vigente = !!v; if (!vigente) vaciar(); },

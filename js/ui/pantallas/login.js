@@ -1,5 +1,7 @@
 // Login (Pantallas/Login.qml): usuario y contraseña con el teclado en pantalla. En la demo muestra, de forma
-// discreta, qué usuarios existen y el PIN. Al entrar va a Opciones.
+// discreta, qué usuarios existen y el PIN. Al entrar va a Opciones. En horizontal, identidad a la izquierda
+// y formulario a la derecha (CSS de sesion_ui). El campo en edición se pasa al teclado (campo) para que
+// nunca quede tapado.
 import { h } from '../../core/dom.js';
 import { t, idioma } from '../../core/i18n.js';
 import { leer, guardar } from '../../core/almacen.js';
@@ -27,17 +29,17 @@ export function crear() {
     alTocar: () => editar('usuario') });
   const campoClave = campoEntrada({ icono: 'candado', colorIcono: 'var(--c-icono-campo)', marcador: t('formulario.contrasena'), secreto: true,
     alTocar: () => editar('clave') });
-  const casilla = h('div', { class: 'ss-recordar' },
+  const casilla = h('button', { class: 'ss-recordar' },
     h('span', { class: 'ss-caja' }), h('span', { class: 'ss-caja-txt', text: t('formulario.recordar_usuario') }));
   const pintarRecordar = () => {
     const caja = casilla.querySelector('.ss-caja');
     caja.replaceChildren();
-    if (recordar) caja.append(h('img', { src: 'assets/iconos/color/casilla_marcada.svg', alt: '', width: 24, height: 24 }));
+    if (recordar) caja.append(h('img', { src: 'assets/iconos/color/casilla_marcada.svg', alt: '', draggable: 'false' }));
   };
   casilla.addEventListener('click', () => { recordar = !recordar; pintarRecordar(); });
   const mensaje = h('div', { class: 'ss-mensaje oculto' });
   const ayuda = h('div', { class: 'ss-ayuda oculto', text: t('sesion.ayuda_olvido_clave') });
-  const enlace = h('div', { class: 'ss-enlace', text: t('formulario.olvido_contrasena'), onclick: () => ayuda.classList.toggle('oculto') });
+  const enlace = h('button', { class: 'ss-enlace', text: t('formulario.olvido_contrasena'), onclick: () => ayuda.classList.toggle('oculto') });
   const boton = botonPrincipal(t('acciones.iniciar_sesion'), () => iniciar(), 'usuario');
 
   const formulario = h('div', { class: 'ss-formulario' }, campoUsuario.el, campoClave.el, casilla, boton, mensaje, enlace, ayuda);
@@ -53,13 +55,13 @@ export function crear() {
   }
   function mostrarMensaje(txt) { mensaje.textContent = txt ?? ''; mensaje.classList.toggle('oculto', !txt); }
 
-  const CAMPOS = [{ nombre: 'usuario', clave: 'formulario.nombre_usuario', ocultar: false, max: 30 },
-    { nombre: 'clave', clave: 'formulario.contrasena', ocultar: true, max: 64 }];
+  const CAMPOS = [{ nombre: 'usuario', clave: 'formulario.nombre_usuario', ocultar: false, max: 30, ui: campoUsuario },
+    { nombre: 'clave', clave: 'formulario.contrasena', ocultar: true, max: 64, ui: campoClave }];
   function editar(nombre) {
     const i = CAMPOS.findIndex((c) => c.nombre === nombre);
     const c = CAMPOS[i];
     const siguiente = CAMPOS[i + 1]?.nombre;
-    abrirAlfanumerico({ titulo: t(c.clave), valor: estado[nombre], maxLargo: c.max, oculto: c.ocultar,
+    abrirAlfanumerico({ titulo: t(c.clave), valor: estado[nombre], maxLargo: c.max, oculto: c.ocultar, campo: c.ui.el,
       alEntregar: (texto) => { estado[nombre] = texto; pintar(); },
       alSiguiente: siguiente ? () => editar(siguiente) : null,
       alTerminar: () => iniciar(),

@@ -4,7 +4,6 @@
 import { h } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { abrirModal } from '../../core/capas.js';
-import { medir } from './_ciclo_util.js';
 
 /**
  * abrirModalConfirmacion({titulo, cuerpo, nota, textoVolver, textoAccion,
@@ -14,16 +13,13 @@ import { medir } from './_ciclo_util.js';
 export function abrirModalConfirmacion({ titulo = '', cuerpo = '', nota = '', textoVolver = t('ciclo.modal_volver'),
   textoAccion = '', colorAccion = 'var(--c-accion-primario)', colorTextoAccion = 'var(--c-texto-sobre-accion)',
   alAceptar = null, alCancelar = null } = {}) {
-  const ancho = 1200 - 160;
-  const util = ancho - 96 - 40;
-  const base = 340;
-  const aV = Math.min(Math.max(base, medir(textoVolver, 26, 600) + 32), util / 2);
-  const aA = Math.min(Math.max(base, medir(textoAccion, 26, 600) + 32), util - aV);
+  // Composición adaptable: tarjeta de ancho relativo a la ventana (CSS), cuerpo desplazable,
+  // botones de 44 px o más que se apilan si no caben lado a lado.
   let accion = 'cancelar';
-  const bVolver = h('button', { class: 'fc-mc-volver', style: { width: `${aV}px` } }, h('span', { text: textoVolver }));
-  const bAccion = h('button', { class: 'fc-mc-accion', style: { width: `${aA}px`, background: colorAccion, color: colorTextoAccion } },
+  const bVolver = h('button', { class: 'fc-mc-volver' }, h('span', { text: textoVolver }));
+  const bAccion = h('button', { class: 'fc-mc-accion', style: { background: colorAccion, color: colorTextoAccion } },
     h('span', { text: textoAccion }));
-  const tarjeta = h('div', { class: 'fc-mc-tarjeta fc-entrada', style: { width: `${ancho}px` } },
+  const tarjeta = h('div', { class: 'fc-mc-tarjeta fc-entrada' },
     h('div', { class: 'fc-mc-titulo', text: titulo }),
     h('div', { class: 'fc-mc-linea' }),
     h('div', { class: 'fc-mc-cuerpo desplazable' },

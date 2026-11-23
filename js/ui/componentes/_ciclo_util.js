@@ -1,62 +1,13 @@
 // Ayudantes internos del frente ciclo (no es un componente publicado).
-// Geometría: todo en px de diseño del lienzo 1200x1920; los números del QML
-// (u del mockup 1196x1917) se usan tal cual (diferencia 0,3 %).
+// Composición adaptable (v1.1): nada de px de diseño; medidas en rem/px reales y
+// encaje de textos de una línea con encajar() (HorizontalFit del QML).
 import { h } from '../../core/dom.js';
 import { t, idioma } from '../../core/i18n.js';
 import es from '../../../i18n/es.js';
 import en from '../../../i18n/en.js';
 
-// Distancia de la parte superior de una caja de texto con line-height: 1 a la
-// línea base, en fracción del tamaño (métricas hhea: Montserrat 968/251,
-// Arial 905/212, Tahoma 1000/207). El QML ubica los textos por línea base.
-const BASE = { mont: 0.858, num: 0.846, reloj: 0.897 };
-const FAMILIA = { mont: 'var(--familia)', num: 'var(--fc-familia-num)', reloj: 'var(--familia-reloj)' };
-
-/**
- * Texto ubicado como el componente Texto del QML: por línea base (bl) y por centro
- * (cx), borde izquierdo (lx) o borde derecho (rx). Opcional `ancho` (px): si el texto
- * no cabe, baja la letra hasta 14 px (HorizontalFit; nunca se recorta).
- */
-export function txt(texto, { cx, lx, rx, bl = 0, tam = 16, peso = 400, color = 'var(--c-texto-primario)',
-  familia = 'mont', ancho = 0, clase = '', espaciado = 0 } = {}) {
-  const el = h('div', { class: `fc-txt ${clase}` });
-  el.textContent = texto ?? '';
-  const s = el.style;
-  s.fontFamily = FAMILIA[familia] || familia;
-  s.fontWeight = peso;
-  s.color = color;
-  if (espaciado) s.letterSpacing = `${espaciado}px`;
-  el._fc = { tam, familia, ancho, peso, bl, cx, lx, rx, espaciado };
-  aplicarTam(el, tam);
-  if (lx != null) s.left = `${lx}px`;
-  else if (rx != null) { s.right = 'auto'; s.left = `${rx}px`; s.transform = 'translateX(-100%)'; }
-  else { s.left = `${cx}px`; s.transform = 'translateX(-50%)'; }
-  if (ancho) { s.maxWidth = 'none'; ajustar(el); }
-  return el;
-}
-
-function aplicarTam(el, tam) {
-  const f = el._fc;
-  el.style.fontSize = `${tam}px`;
-  el.style.top = `${f.bl - BASE[f.familia in BASE ? f.familia : 'mont'] * tam}px`;
-}
-
-/** Cambia el texto de un txt() y reajusta su tamaño. */
-export function fijarTexto(el, texto) {
-  if (el.textContent === texto) return;
-  el.textContent = texto ?? '';
-  if (el._fc?.ancho) ajustar(el);
-}
-
-function ajustar(el) {
-  const f = el._fc;
-  const w = medir(el.textContent, f.tam, f.peso, f.familia, f.espaciado);
-  const tam = w > f.ancho ? Math.max(14, Math.floor(f.tam * f.ancho / w)) : f.tam;
-  aplicarTam(el, tam);
-}
-
 let lienzoMedida = null;
-/** Ancho de un texto en px de diseño (canvas, sin reflow). */
+/** Ancho de un texto en px (canvas, sin reflow). familia: 'mont' | 'num' | 'reloj'. */
 export function medir(texto, tam, peso = 400, familia = 'mont', espaciado = 0) {
   if (!lienzoMedida) lienzoMedida = document.createElement('canvas').getContext('2d');
   const fam = familia === 'num' ? 'Arial, Montserrat, sans-serif'
@@ -65,55 +16,70 @@ export function medir(texto, tam, peso = 400, familia = 'mont', espaciado = 0) {
   return lienzoMedida.measureText(String(texto ?? '')).width + espaciado * String(texto ?? '').length;
 }
 
-/** Caja absoluta en px de diseño. */
-export function caja(tag, x, y, w, hh, clase = '', estilo = {}) {
-  const el = h(tag, { class: clase });
-  Object.assign(el.style, { position: 'absolute', left: `${x}px`, top: `${y}px`,
-    width: w == null ? '' : `${w}px`, height: hh == null ? '' : `${hh}px` }, estilo);
-  return el;
-}
-
-/** Icono SVG por máscara desde cualquier carpeta (los de color/ sin variante mono). */
-export function mascara(ruta, tam, color, clase = '') {
-  const el = h('span', { class: `fc-mascara ${clase}` });
-  Object.assign(el.style, { width: `${tam}px`, height: `${tam}px`, backgroundColor: color,
-    webkitMaskImage: `url("${ruta}")`, maskImage: `url("${ruta}")` });
-  return el;
-}
+/** Tamaño mínimo de letra (px reales, B4). */
+export const LETRA_MIN = 12.2;
 
 /**
- * Icono de 48x48 cuya tinta llena la caja del mockup (componente Icono del QML).
- * caja = [x, y, w, h]; tinta = [x0, y0, x1, y1] dentro del viewBox 48.
- * Con `color` se pinta por máscara (mono/), si no se usa el SVG a color.
+ * Encaje horizontal (HorizontalFit del QML): si el texto de un bloque de una línea
+ * (.fc-encaja: white-space nowrap, ancho dado por su caja) no cabe, baja la letra hasta
+ * LETRA_MIN. Nunca se recorta: la letra nominal la da el CSS.
  */
-export function iconoCaja(nombre, cajaM, tinta = [0, 0, 48, 48], color = null) {
-  const e = cajaM[3] / (tinta[3] - tinta[1]);
-  const w = 48 * e;
-  const x = cajaM[0] + cajaM[2] / 2 - (tinta[0] + tinta[2]) / 2 * e;
-  const y = cajaM[1] - tinta[1] * e;
-  const el = color
-    ? mascara(`assets/iconos/mono/${nombre}.svg`, w, color)
-    : h('img', { src: `assets/iconos/color/${nombre}.svg`, alt: '', draggable: 'false' });
-  Object.assign(el.style, { position: 'absolute', left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${w}px` });
+export function encajar(el, min = LETRA_MIN) {
+  if (!el || !el.isConnected) return;
+  el.style.fontSize = '';
+  const cw = el.clientWidth;
+  if (!cw) return;
+  el.style.whiteSpace = '';
+  const sw = el.scrollWidth;
+  if (sw > cw + 0.5) {
+    const fs = parseFloat(getComputedStyle(el).fontSize) || 16;
+    el.style.fontSize = `${Math.max(min, Math.floor(fs * cw / sw * 10) / 10)}px`;
+    // Si ni con la letra mínima cabe en una línea, se parte por palabras (nunca se sale ni se recorta).
+    if (el.scrollWidth > el.clientWidth + 0.5) el.style.whiteSpace = 'normal';
+  }
+}
+/** Reencaja todos los .fc-encaja de un nodo (al cambiar de tamaño). */
+export function encajarTodo(raiz) { raiz?.querySelectorAll('.fc-encaja').forEach((e) => encajar(e)); }
+
+/** Cambia el texto de un nodo y lo reencaja si es .fc-encaja. */
+export function fijarTexto(el, texto) {
+  texto = texto ?? '';
+  if (el.textContent === texto) return;
+  el.textContent = texto;
+  if (el.classList.contains('fc-encaja')) encajar(el);
+}
+
+/** Medida CSS: número = px; texto se usa tal cual. */
+const css = (v) => (typeof v === 'number' ? `${v}px` : String(v));
+
+/** Icono SVG por máscara desde cualquier carpeta (los de color/ sin variante mono).
+ *  tam: px o medida CSS; null = lo pone el CSS. */
+export function mascara(ruta, tam, color, clase = '') {
+  const el = h('span', { class: `fc-mascara ${clase}` });
+  Object.assign(el.style, { backgroundColor: color,
+    webkitMaskImage: `url("${ruta}")`, maskImage: `url("${ruta}")` });
+  if (tam != null) Object.assign(el.style, { width: css(tam), height: css(tam) });
   return el;
 }
 
-/** Imagen de puerta (PNG 1920x1080) recortada a su tinta y pintada de un color (máscara). */
+/** Imagen de puerta (PNG 1920x1080) recortada a su tinta y pintada de un color (máscara).
+ *  alto: px o medida CSS (todo va en em, así escala con la letra del contenedor). */
 export function iconoPuerta(numero, cerrada, alto, color) {
   // recortes = caja de tinta de cada PNG (sourceClipRect del QML)
   const rect = numero === 2
     ? (cerrada ? [653, 37, 603, 962] : [647, 22, 615, 992])
     : (cerrada ? [670, 37, 598, 962] : [665, 22, 607, 992]);
-  const s = alto / rect[3];
-  const ancho = alto * 607 / 992;
+  const s = 1 / rect[3];               // em por px de imagen
+  const ancho = 607 / 992;             // em
+  const dx = (ancho - rect[2] * s) / 2;
   const ruta = `assets/imagenes/${cerrada ? 'close_door_' : 'open_door_'}${numero === 2 ? 2 : 1}.png`;
   const el = h('span', { class: 'fc-puerta-img' });
-  const dx = (ancho - rect[2] * s) / 2;
+  const f = (v) => `${v.toFixed(4)}em`;
   Object.assign(el.style, {
-    width: `${ancho}px`, height: `${alto}px`, backgroundColor: color,
+    fontSize: css(alto), width: f(ancho), height: '1em', backgroundColor: color,
     webkitMaskImage: `url("${ruta}")`, maskImage: `url("${ruta}")`,
-    webkitMaskSize: `${1920 * s}px ${1080 * s}px`, maskSize: `${1920 * s}px ${1080 * s}px`,
-    webkitMaskPosition: `${dx - rect[0] * s}px ${-rect[1] * s}px`, maskPosition: `${dx - rect[0] * s}px ${-rect[1] * s}px`,
+    webkitMaskSize: `${f(1920 * s)} ${f(1080 * s)}`, maskSize: `${f(1920 * s)} ${f(1080 * s)}`,
+    webkitMaskPosition: `${f(dx - rect[0] * s)} ${f(-rect[1] * s)}`, maskPosition: `${f(dx - rect[0] * s)} ${f(-rect[1] * s)}`,
   });
   return el;
 }
@@ -216,3 +182,10 @@ export function textosAlarma(a) {
 export const grupoDe = (nivel) => (nivel === 'media' ? 'alarma' : nivel === 'baja' ? 'aviso' : 'emergencia');
 export const colorNivel = (nivel) => (nivel === 'media' ? 'var(--c-alarma-media)'
   : nivel === 'baja' ? 'var(--c-alarma-baja)' : 'var(--c-alarma-alta)');
+
+/** Escala del QML en la ventana actual: px reales por px de diseño (1200x1920 en vertical,
+ *  1920x1200 en horizontal). Solo para proporciones; los pisos (12,2 px, 44 px) mandan. */
+export function escalaU() {
+  const w = window.innerWidth || 1, hh = window.innerHeight || 1;
+  return document.documentElement.dataset.orient === 'h' ? Math.min(w / 1920, hh / 1200) : Math.min(w / 1200, hh / 1920);
+}

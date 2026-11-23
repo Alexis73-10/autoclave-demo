@@ -1,6 +1,7 @@
 // Panel OCULTO de la demo. Se abre con una pulsación larga de 3 s sobre el logo.
 // Contiene: fallos provocables (sim.fallosDisponibles / sim.dispararFallo), reiniciar los datos de la demo,
-// cambiar de idioma, alternar el modo oscuro y la versión.
+// cambiar de idioma, alternar el modo oscuro y la versión. Tarjeta de tamaño relativo a la ventana; la
+// lista de fallos se desplaza dentro (.desplazable).
 //
 // Uso desde cualquier pantalla con logo:
 //   import { instalarPanelDemo } from '../componentes/panel_demo.js';
@@ -13,6 +14,7 @@ import { borrarTodo } from '../../core/almacen.js';
 import { on } from '../../core/eventos.js';
 import { sim } from '../../sim/motor.js';
 import { VERSION_DEMO } from '../../../version.js';
+import { botonCerrar } from './ventana_menu.js';
 
 // Textos propios del panel (no existen en el software real).
 const TX = {
@@ -32,7 +34,7 @@ let abierto = null;   // {cerrar}
 /** Abre el panel (también se puede llamar directamente, p. ej. desde la consola). */
 export function abrirPanelDemo() {
   if (abierto) return abierto;
-  const lista = h('div', { class: 'pd-lista desplazable' });
+  const lista = h('div', { class: 'pd-lista' });
   let maquinaPintada = null;
 
   const pintarFallos = () => {
@@ -50,8 +52,8 @@ export function abrirPanelDemo() {
           try { sim.dispararFallo(f.codigo); aviso(`${tx('disparado')}: ${f.codigoVisible ?? f.codigo}`); } catch (e) { console.warn('[demo] fallo', e); }
         } },
         h('span', { class: 'pd-fallo-cod', text: f.codigoVisible ?? f.codigo }),
-        h('span', { class: 'pd-fallo-tit', text: f.titulo ?? '' }),
-        h('span', { class: 'pd-fallo-efe', text: [f.efecto, solo && !habilitado ? tx('soloCiclo') : ''].filter(Boolean).join(' · ') }));
+        h('span', { class: 'pd-fallo-txt' }, h('span', { class: 'pd-fallo-tit', text: f.titulo ?? '' }),
+          h('span', { class: 'pd-fallo-efe', text: [f.efecto, solo && !habilitado ? tx('soloCiclo') : ''].filter(Boolean).join(' · ') })));
       lista.append(fila);
     }
   };
@@ -72,30 +74,26 @@ export function abrirPanelDemo() {
     location.reload();
   });
 
-  const cerrarBtn = h('button', { class: 'pd-cerrar', 'aria-label': tx('cerrar') },
-    h('span', { class: 'pd-x a' }), h('span', { class: 'pd-x b' }));
+  const cerrarBtn = botonCerrar(() => abierto?.cerrar(), tx('cerrar'));
   const tarjeta = h('div', { class: 'pd-tarjeta' },
-    h('div', { class: 'pd-titulo', text: tx('titulo') }), cerrarBtn,
-    h('div', { class: 'pd-linea' }),
-    h('div', { class: 'pd-fila' }, h('span', { class: 'pd-rot', text: tx('idioma') }),
-      h('div', { class: 'pd-segs' }, botonIdioma('es', 'Español'), botonIdioma('en', 'English'))),
-    h('div', { class: 'pd-fila' }, h('span', { class: 'pd-rot', text: tx('tema') }), botonTema),
-    h('div', { class: 'pd-sec', text: tx('fallos') }),
-    lista,
+    h('div', { class: 'vm-cab' }, h('div', { class: 'vm-titulo', text: tx('titulo') }), cerrarBtn),
+    h('div', { class: 'vm-linea' }),
+    h('div', { class: 'pd-cuerpo desplazable' },
+      h('div', { class: 'pd-fila' }, h('span', { class: 'pd-rot', text: tx('idioma') }),
+        h('div', { class: 'pd-segs' }, botonIdioma('es', 'Español'), botonIdioma('en', 'English'))),
+      h('div', { class: 'pd-fila' }, h('span', { class: 'pd-rot', text: tx('tema') }), botonTema),
+      h('div', { class: 'pd-sec', text: tx('fallos') }),
+      lista),
     h('div', { class: 'pd-pie' }, botonReiniciar,
       h('div', { class: 'pd-version', text: `${tx('version')}: ${VERSION_DEMO}` })));
-  tarjeta.addEventListener('pointerdown', (e) => e.stopPropagation());
   const pintarTema = () => { botonTema.textContent = oscuro() ? tx('desactivar') : tx('activar'); };
   pintarTema();
   pintarFallos();
 
-  const raiz = h('div', { class: 'pd-raiz' }, tarjeta);
   const quitarSim = on('sim', (e) => { if (e.maquina !== maquinaPintada) pintarFallos(); });
   const quitarTema = on('tema', pintarTema);
   const quitarIdioma = on('idioma', () => { cerrarModal(); setTimeout(abrirPanelDemo, 60); });   // se rehace en el idioma nuevo
-  const cerrarModal = abrirModal(raiz, { cerrarAlTocarVelo: false, alCerrar: () => { quitarSim(); quitarTema(); quitarIdioma(); clearTimeout(armado); abierto = null; } });
-  raiz.addEventListener('pointerdown', (e) => { if (e.target === raiz) cerrarModal(); });
-  cerrarBtn.addEventListener('click', () => cerrarModal());
+  const cerrarModal = abrirModal(tarjeta, { cerrarAlTocarVelo: true, alCerrar: () => { quitarSim(); quitarTema(); quitarIdioma(); clearTimeout(armado); abierto = null; } });
   abierto = { cerrar: cerrarModal };
   return abierto;
 }

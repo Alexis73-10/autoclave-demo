@@ -42,7 +42,7 @@ export function crear(params = {}) {
   function editar(nombre) {
     const i = campos.findIndex((c) => c.nombre === nombre);
     const sig = campos[i + 1]?.nombre;
-    abrirAlfanumerico({ titulo: t(campos[i].etiqueta), valor: estado[nombre], maxLargo: 64, oculto: true,
+    abrirAlfanumerico({ titulo: t(campos[i].etiqueta), valor: estado[nombre], maxLargo: 64, oculto: true, campo: campos[i].ui.el,
       alEntregar: (texto) => { estado[nombre] = texto; pintar(); },
       alSiguiente: sig ? () => editar(sig) : null,
       alCerrar: () => { if (activo === nombre) { activo = ''; pintar(); } } });
